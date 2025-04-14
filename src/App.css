@@ -1,15 +1,40 @@
-/* Milk Shop Application Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: #f5f5f5;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Milk Shop Application Styles */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -17,9 +42,9 @@ body {
 }
 
 header {
-  background-color: #fff;
+  background-color:forestgreen;
   padding: 20px;
-  border-radius: 8px;
+
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
@@ -78,7 +103,7 @@ section.active {
 }
 
 .search-bar input, .search-filter {
-  width: 100%;
+  width: 20%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 5px;
@@ -155,7 +180,7 @@ section.active {
 }
 
 button[type="submit"] {
-  background-color: #3498db;
+  background-color: #2d6a4f;
   color: white;
   border: none;
   padding: 10px 15px;
@@ -319,3 +344,47 @@ th {
     flex-direction: column;
   }
 }
+
+.app-header {
+  background-color: forestgreen;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 23px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-logo {
+  height: 40px;
+  width: auto;
+}
+
+.logout-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+ 
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: #d32f2f;
+}
+
