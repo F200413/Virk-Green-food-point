@@ -1332,6 +1332,12 @@ const Home = () => {
             const yogurtTotal = yogurtQty * yogurtRate;
             const total = milkTotal + yogurtTotal;
 
+            // Use the selected date for the purchase, but keep current time
+            const purchaseDate = new Date(selectedDate);
+            purchaseDate.setHours(new Date().getHours());
+            purchaseDate.setMinutes(new Date().getMinutes());
+            purchaseDate.setSeconds(new Date().getSeconds());
+
             await addDoc(purchasesCollection, {
                 customerId: selectedCustomer,
                 milk: milkQty,
@@ -1339,7 +1345,7 @@ const Home = () => {
                 milkRate: milkRate,
                 yogurtRate: yogurtRate,
                 total: total,
-                date: Timestamp.now()
+                date: Timestamp.fromDate(purchaseDate)
             });
 
             // Update inventory
@@ -1352,6 +1358,11 @@ const Home = () => {
             setPurchaseFormData({ milk: 0, yogurt: 0 });
             closeModal('purchaseModal');
             fetchPurchases();
+            
+            // Update daily purchases for the selected date
+            const filtered = filterPurchasesByDate(selectedDate);
+            setDailyPurchases(filtered);
+            
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
             setShowSuccessPopup(true);
         } catch (error) {
@@ -3937,6 +3948,22 @@ const Home = () => {
                                                 {dailyPurchases.length === 0 && showCalendar && (
                                                     <div className="daily-purchases">
                                                         <p>No purchases found for {selectedDate.toLocaleDateString()}</p>
+                                                        <button 
+                                                            className="add-purchase-btn"
+                                                            onClick={() => showPurchaseModal(selectedCustomer)}
+                                                            style={{
+                                                                backgroundColor: '#2d6a4f',
+                                                                color: 'white',
+                                                                padding: '10px 20px',
+                                                                border: 'none',
+                                                                borderRadius: '5px',
+                                                                cursor: 'pointer',
+                                                                marginTop: '15px',
+                                                                fontSize: '16px'
+                                                            }}
+                                                        >
+                                                            خریداری درج کریں
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
