@@ -1327,26 +1327,25 @@ const Home = () => {
             const milkRate = customer && customer.customMilkRate ? parseFloat(customer.customMilkRate) : rates.milk;
             const yogurtRate = customer && customer.customYogurtRate ? parseFloat(customer.customYogurtRate) : rates.yogurt;
 
-            const purchasesCollection = collection(firestore, 'purchases');
-            const milkTotal = milkQty * milkRate;
-            const yogurtTotal = yogurtQty * yogurtRate;
-            const total = milkTotal + yogurtTotal;
-
             // Use the selected date for the purchase, but keep current time
             const purchaseDate = new Date(selectedDate);
             purchaseDate.setHours(new Date().getHours());
             purchaseDate.setMinutes(new Date().getMinutes());
             purchaseDate.setSeconds(new Date().getSeconds());
 
-            await addDoc(purchasesCollection, {
+            const purchaseData = {
                 customerId: selectedCustomer,
                 milk: milkQty,
                 yogurt: yogurtQty,
                 milkRate: milkRate,
                 yogurtRate: yogurtRate,
-                total: total,
+                total: (milkQty * milkRate) + (yogurtQty * yogurtRate),
                 date: Timestamp.fromDate(purchaseDate)
-            });
+            };
+
+            // Add to Firestore
+            const purchasesCollection = collection(firestore, 'purchases');
+            const docRef = await addDoc(purchasesCollection, purchaseData);
 
             // Update inventory
             const newInventory = {
@@ -1355,16 +1354,27 @@ const Home = () => {
             };
             await updateInventory(newInventory);
 
+            // Update local state immediately
+            const newPurchase = {
+                id: docRef.id,
+                ...purchaseData,
+                date: purchaseDate.toISOString() // Convert to ISO string to match the format
+            };
+
+            // Update purchases state
+            setPurchases(prevPurchases => [...prevPurchases, newPurchase]);
+
+            // Update daily purchases
+            setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, newPurchase]);
+
             setPurchaseFormData({ milk: 0, yogurt: 0 });
             closeModal('purchaseModal');
-            fetchPurchases();
-            
-            // Update daily purchases for the selected date
-            const filtered = filterPurchasesByDate(selectedDate);
-            setDailyPurchases(filtered);
             
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
             setShowSuccessPopup(true);
+
+            // Fetch fresh data to ensure everything is in sync
+            await fetchPurchases();
         } catch (error) {
             console.error("Error adding purchase: ", error);
         } finally {
