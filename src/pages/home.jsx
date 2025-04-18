@@ -1087,7 +1087,10 @@ const Home = () => {
 
     // Add a new useEffect to calculate today's sales when bills change
     useEffect(() => {
-        calculateTodaySales();
+        const fetchSales = async () => {
+            await calculateTodaySales();
+        };
+        fetchSales();
     }, [bills]);
 
     // Add this useEffect to monitor selectedCustomer changes
@@ -1166,7 +1169,7 @@ const Home = () => {
             const billsList = billsSnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-                date: doc.data().date.toDate().toLocaleDateString()
+                date: doc.data().date.toDate().toISOString()
             }));
             setBills(billsList);
         } catch (error) {
@@ -2654,36 +2657,62 @@ const Home = () => {
     };
 
     // Add a function to calculate today's sales
-    const calculateTodaySales = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const calculateTodaySales = async () => {
+        try {
+            // Check if revenue has been cleared
+            const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
+            const settingsSnapshot = await getDoc(settingsDoc);
+            
+            // Get the settings or create default settings
+            const revenueSettings = settingsSnapshot.exists() 
+                ? settingsSnapshot.data() 
+                : { isCleared: false, lastCleared: null };
+            
+            // If revenue is cleared, just return and don't update the revenue
+            if (revenueSettings.isCleared) {
+                return;
+            }
+            
+            // Otherwise calculate today's revenue
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-        const todayBills = bills.filter(bill => {
-            const billDate = new Date(bill.date);
-            return billDate >= today;
-        });
+            const todayBills = bills.filter(bill => {
+                const billDate = new Date(bill.date);
+                // Compare only the date part (year, month, day)
+                return billDate.getFullYear() === today.getFullYear() &&
+                       billDate.getMonth() === today.getMonth() &&
+                       billDate.getDate() === today.getDate();
+            });
 
-        const todayTotal = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
-        setTodaySales(todayTotal);
+            const todayTotal = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+            setTodaySales(todayTotal);
 
-        // Calculate growth (comparing with previous day)
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const dayBefore = new Date(yesterday);
-        dayBefore.setDate(dayBefore.getDate() - 1);
+            // Calculate growth (comparing with previous day)
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
 
-        const yesterdayBills = bills.filter(bill => {
-            const billDate = new Date(bill.date);
-            return billDate >= yesterday && billDate < today;
-        });
+            const yesterdayBills = bills.filter(bill => {
+                const billDate = new Date(bill.date);
+                return billDate.getFullYear() === yesterday.getFullYear() &&
+                       billDate.getMonth() === yesterday.getMonth() &&
+                       billDate.getDate() === yesterday.getDate();
+            });
 
-        const yesterdayTotal = yesterdayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+            const yesterdayTotal = yesterdayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
 
-        if (yesterdayTotal > 0) {
-            const growth = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
-            setSalesGrowth(growth);
-        } else {
-            setSalesGrowth(0);
+            if (yesterdayTotal > 0) {
+                const growth = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+                setSalesGrowth(growth);
+            } else {
+                setSalesGrowth(0);
+            }
+            
+            // Update the revenue settings to indicate revenue has been calculated but not cleared
+            await setDoc(settingsDoc, { isCleared: false }, { merge: true });
+            
+        } catch (error) {
+            console.error("Error calculating today's sales: ", error);
         }
     };
 
@@ -3202,6 +3231,39 @@ const Home = () => {
         requestPasswordForDelete(clearMonthlyPurchases);
     };
 
+    // Function to manually clear daily revenue
+    const clearDailyRevenue = async () => {
+        // Request password verification before proceeding
+        requestPasswordForDelete(async () => {
+            setLoading(true);
+            try {
+                // Store the clear date in Firestore to keep track of when revenue was last cleared
+                const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
+                await setDoc(settingsDoc, { 
+                    lastCleared: Timestamp.now(),
+                    isCleared: true
+                }, { merge: true });
+                
+                // Reset the daily sales to 0
+                setTodaySales(0);
+                
+                setSuccessMessage('روزانہ کی آمدنی کامیابی سے صاف کر دی گئی ہے');
+                setShowSuccessPopup(true);
+            } catch (error) {
+                console.error("Error clearing daily revenue: ", error);
+                setSuccessMessage("روزانہ کی آمدنی کو صاف کرنے میں خرابی");
+                setShowSuccessPopup(true);
+            } finally {
+                setLoading(false);
+            }
+        });
+    };
+
+    // Function to handle clear daily revenue button click
+    const handleClearDailyRevenue = () => {
+        clearDailyRevenue();
+    };
+
     return (
         <div className="app-container">
             {/* Sidebar */}
@@ -3315,6 +3377,23 @@ const Home = () => {
                                     </div>
                                     <div className="card-body">
                                         <div className="card-value">Rs.{(todaySales !== undefined ? todaySales.toFixed(2) : '0.00')}</div>
+                                        <button 
+                                            onClick={handleClearDailyRevenue}
+                                            className="clear-revenue-btn"
+                                            disabled={loading}
+                                            style={{
+                                                marginTop: '10px',
+                                                padding: '5px 10px',
+                                                backgroundColor: '#f44336',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Clear Revenue
+                                        </button>
                                     </div>
                                 </div>
                                 
