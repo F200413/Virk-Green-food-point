@@ -19,6 +19,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CancelIcon from '@mui/icons-material/Cancel';
+import LockIcon from '@mui/icons-material/Lock';
 
 const Home = () => {
     // State variables
@@ -75,6 +76,13 @@ const Home = () => {
     const [dailyPurchases, setDailyPurchases] = useState([]);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
+    
+    // Password verification for delete operations
+    const [showPasswordVerification, setShowPasswordVerification] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [deleteAction, setDeleteAction] = useState(null);
+    const [deleteParams, setDeleteParams] = useState(null);
 
     // Helper function to round numbers
     const roundNumber = (num) => {
@@ -1273,32 +1281,44 @@ const Home = () => {
     };
 
     const deleteCustomer = async (customerId) => {
-        if (window.confirm('Are you sure you want to delete this customer?')) {
+        if (!customerId) return;
+        
+        // Request password verification before proceeding
+        requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
-                await deleteDoc(doc(firestore, 'customers', customerId));
-                fetchCustomers();
+                const customerRef = doc(firestore, 'customers', id);
+                await deleteDoc(customerRef);
+                
+                // Update local state
+                setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== id));
+                
+                setSuccessMessage('گاہک کامیابی سے حذف کر دیا گیا');
+                setShowSuccessPopup(true);
             } catch (error) {
                 console.error("Error deleting customer: ", error);
+                setSuccessMessage("گاہک کو حذف کرنے میں خرابی");
+                setShowSuccessPopup(true);
             } finally {
                 setLoading(false);
             }
-        }
+        }, customerId);
     };
 
     const clearBills = async () => {
-        if (window.confirm('آپ واقعی تمام بلوں کو حذف کرنا چاہتے ہیں؟')) {
+        // Request password verification before proceeding
+        requestPasswordForDelete(async () => {
             setLoading(true);
             try {
                 const billsCollection = collection(firestore, 'bills');
                 const billsSnapshot = await getDocs(billsCollection);
-
+                
                 const deletePromises = billsSnapshot.docs.map(doc =>
                     deleteDoc(doc.ref)
                 );
 
                 await Promise.all(deletePromises);
-                fetchBills();
+                setBills([]); // Clear bills in state
                 setSuccessMessage('تمام بل کامیابی سے حذف کر دیے گئے ہیں');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -1308,7 +1328,7 @@ const Home = () => {
             } finally {
                 setLoading(false);
             }
-        }
+        });
     };
 
     const addPurchase = async () => {
@@ -1581,19 +1601,28 @@ const Home = () => {
     };
 
     const deleteAdvancePayment = async (paymentId) => {
-        if (window.confirm('کیا آپ واقعی اس ایڈوانس پیمنٹ کو حذف کرنا چاہتے ہیں؟')) {
+        if (!paymentId) return;
+        
+        // Request password verification before proceeding
+        requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
-                await deleteDoc(doc(firestore, 'advancePayments', paymentId));
-                fetchAdvancePayments();
-                setSuccessMessage('ایڈوانس پیمنٹ کامیابی سے حذف کر دی گئی ہے');
+                const paymentRef = doc(firestore, 'advancePayments', id);
+                await deleteDoc(paymentRef);
+                
+                // Update local state
+                setAdvancePayments(prevPayments => prevPayments.filter(payment => payment.id !== id));
+                
+                setSuccessMessage('ایڈوانس پیمنٹ کامیابی سے حذف کر دی گئی');
                 setShowSuccessPopup(true);
             } catch (error) {
                 console.error("Error deleting advance payment: ", error);
+                setSuccessMessage("ایڈوانس پیمنٹ کو حذف کرنے میں خرابی");
+                setShowSuccessPopup(true);
             } finally {
                 setLoading(false);
             }
-        }
+        }, paymentId);
     };
 
     // Add a function to close the success popup
@@ -2660,7 +2689,8 @@ const Home = () => {
 
     // Add a new function to clear monthly purchases
     const clearMonthlyPurchases = async () => {
-      if (window.confirm('کیا آپ واقعی تمام ماہانہ خریداری کو حذف کرنا چاہتے ہیں؟ ایڈوانس اور باقیہ رقم برقرار رہیں گی۔')) {
+      // Request password verification before proceeding
+      requestPasswordForDelete(async () => {
         setLoading(true);
         try {
           // First fetch all the purchases
@@ -2673,7 +2703,8 @@ const Home = () => {
           );
           
           await Promise.all(deletePromises);
-          fetchPurchases(); // Refresh the purchases list
+          setPurchases([]); // Clear purchases in state
+          setDailyPurchases([]); // Clear daily purchases in state
           
           setSuccessMessage('تمام ماہانہ خریداری کامیابی سے حذف کر دی گئی ہیں۔ ایڈوانس اور باقیہ رقم برقرار ہیں۔');
           setShowSuccessPopup(true);
@@ -2684,7 +2715,7 @@ const Home = () => {
         } finally {
           setLoading(false);
         }
-      }
+      });
     };
 
     // Add this function with the other handlers
@@ -3112,6 +3143,63 @@ const Home = () => {
             printWindow.print();
             printWindow.close();
         }, 500);
+    };
+
+    // Password verification functions
+    const requestPasswordForDelete = (action, params = null) => {
+        setDeleteAction(() => action);
+        setDeleteParams(params);
+        setPasswordInput('');
+        setPasswordError('');
+        setShowPasswordVerification(true);
+    };
+
+    const handlePasswordVerification = () => {
+        // Check if password matches login password
+        if (passwordInput === 'virk0912') {
+            // Password is correct, proceed with deletion
+            setShowPasswordVerification(false);
+            setPasswordInput('');
+            
+            // Execute the requested delete action with params
+            if (deleteAction) {
+                if (deleteParams) {
+                    deleteAction(deleteParams);
+                } else {
+                    deleteAction();
+                }
+            }
+        } else {
+            // Password is incorrect
+            setPasswordError('پاس ورڈ غلط ہے');
+        }
+    };
+    
+    const closePasswordModal = () => {
+        setShowPasswordVerification(false);
+        setPasswordInput('');
+        setPasswordError('');
+    };
+    
+    // Wrapper functions for delete operations that use password verification
+    const handleDeleteSupplier = (supplierId) => {
+        requestPasswordForDelete(deleteSupplier, supplierId);
+    };
+    
+    const handleDeleteCustomer = (customerId) => {
+        requestPasswordForDelete(deleteCustomer, customerId);
+    };
+    
+    const handleDeleteAdvancePayment = (paymentId) => {
+        requestPasswordForDelete(deleteAdvancePayment, paymentId);
+    };
+    
+    const handleClearBills = () => {
+        requestPasswordForDelete(clearBills);
+    };
+    
+    const handleClearMonthlyPurchases = () => {
+        requestPasswordForDelete(clearMonthlyPurchases);
     };
 
     return (
@@ -3725,7 +3813,7 @@ const Home = () => {
                                                             <EditIcon fontSize="small" />
                                                         </button>
                                                         <button
-                                                            onClick={() => deleteSupplier(supplier.id)}
+                                                            onClick={() => handleDeleteSupplier(supplier.id)}
                                                             className="delete-btn"
                                                             disabled={loading}
                                                         >
@@ -4386,6 +4474,78 @@ const Home = () => {
                                 >
                                     ٹھیک ہے
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Password Verification Modal */}
+                {showPasswordVerification && (
+                    <div className="modal" style={{ display: 'block' }}>
+                        <div className="modal-content" style={{ maxWidth: '400px' }}>
+                            <span className="close" onClick={closePasswordModal}><CloseIcon /></span>
+                            <div style={{ textAlign: 'center', padding: '20px' }}>
+                                <LockIcon style={{ color: '#e63946', fontSize: '48px', marginBottom: '16px' }} />
+                                <h3 style={{ marginBottom: '15px' }}>پاس ورڈ کی تصدیق</h3>
+                                <p style={{ marginBottom: '20px' }}>براہ کرم، حذف کرنے کے لیے اپنا پاس ورڈ درج کریں۔</p>
+                                
+                                {passwordError && (
+                                    <div style={{ 
+                                        color: '#e63946', 
+                                        backgroundColor: '#ffe3e5', 
+                                        padding: '10px', 
+                                        borderRadius: '5px',
+                                        marginBottom: '15px' 
+                                    }}>
+                                        {passwordError}
+                                    </div>
+                                )}
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <input
+                                        type="password"
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        placeholder="پاس ورڈ"
+                                        autoComplete="new-password"
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '5px',
+                                            fontSize: '16px'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <button 
+                                        onClick={closePasswordModal}
+                                        style={{
+                                            padding: '8px 20px',
+                                            borderRadius: '5px',
+                                            backgroundColor: '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        منسوخ کریں
+                                    </button>
+                                    <button 
+                                        onClick={handlePasswordVerification}
+                                        style={{
+                                            padding: '8px 20px',
+                                            borderRadius: '5px',
+                                            backgroundColor: '#e63946',
+                                            color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        تصدیق کریں
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
