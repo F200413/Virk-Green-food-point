@@ -20,7 +20,9 @@ import 'react-calendar/dist/Calendar.css';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CancelIcon from '@mui/icons-material/Cancel';
 import LockIcon from '@mui/icons-material/Lock';
-
+import easypaisa from '../assets/easy.jpg';
+// Create a placeholder for JazzCash if you don't have an image
+const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
     // State variables
     const [activeSection, setActiveSection] = useState(() => {
@@ -1753,56 +1755,172 @@ const Home = () => {
             }
         });
 
-        billPrint.innerHTML = `
-            <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
-                <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
-                    ورک گرین فوڈ پوائنٹ
-                    </div>
-                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>تاریخ :</span>
-                        <span>${formattedDate}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>وقت :</span>
-                        <span>${formattedTime}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ٹوکن نمبر :</span>
-                        <span>${bill.tokenNumber || '0'}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>فون ورک :</span>
-                        <span>03457411666</span>
-                    </div>
-                    </div>
+        // Convert image to base64 data URL for use in HTML string
+        const easyPaisaCanvas = document.createElement('canvas');
+        const epCtx = easyPaisaCanvas.getContext('2d');
+        const epImg = new Image();
+        epImg.src = easypaisa;
+        
+        epImg.onload = () => {
+            easyPaisaCanvas.width = epImg.width;
+            easyPaisaCanvas.height = epImg.height;
+            epCtx.drawImage(epImg, 0, 0);
+            const easyPaisaDataURL = easyPaisaCanvas.toDataURL('image/jpeg');
+            
+            billPrint.innerHTML = `
+                <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
+                    <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+                        ورک گرین فوڈ پوائنٹ
+                        </div>
+                    <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>تاریخ :</span>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>وقت :</span>
+                            <span>${formattedTime}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>ٹوکن نمبر :</span>
+                            <span>${bill.tokenNumber || '0'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>فون ورک :</span>
+                            <span>03457411666</span>
+                        </div>
+                        </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
-                    <thead>
-                        <tr>
-                            <th style="text-align: right;">پرودکٹ</th>
-                            <th style="text-align: center;">آئٹم</th>
-                            <th style="text-align: center;">مقدار</th>
-                            <th style="text-align: center;">قیمت</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${entriesHTML}
-                    </tbody>
-                </table>
-                
-                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span>کُل رقم :</span>
-                        <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: right;">پرودکٹ</th>
+                                <th style="text-align: center;">آئٹم</th>
+                                <th style="text-align: center;">مقدار</th>
+                                <th style="text-align: center;">قیمت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${entriesHTML}
+                        </tbody>
+                    </table>
+                    
+                    <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span>کُل رقم :</span>
+                            <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>ٹوٹل :</span>
+                            <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ٹوٹل :</span>
-                        <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easyPaisaDataURL}" alt="EasyPaisa" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${jazzCash}" alt="JazzCash" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        };
+        
+        // In case the image hasn't loaded yet or fails, show the content anyway
+        setTimeout(() => {
+            if (billPrint.innerHTML === '') {
+                // Fallback to the version without the image
+                billPrint.innerHTML = `
+                    <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
+                        <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+                            ورک گرین فوڈ پوائنٹ
+                            </div>
+                        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>تاریخ :</span>
+                                <span>${formattedDate}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>وقت :</span>
+                                <span>${formattedTime}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>ٹوکن نمبر :</span>
+                                <span>${bill.tokenNumber || '0'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>فون ورک :</span>
+                                <span>03457411666</span>
+                            </div>
+                            </div>
+
+                        <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: right;">پرودکٹ</th>
+                                    <th style="text-align: center;">آئٹم</th>
+                                    <th style="text-align: center;">مقدار</th>
+                                    <th style="text-align: center;">قیمت</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${entriesHTML}
+                            </tbody>
+                        </table>
+                        
+                        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                <span>کُل رقم :</span>
+                                <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>ٹوٹل :</span>
+                                <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Methods Section -->
+                        <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                            <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                                <!-- Payment methods in a row, with text instead of images -->
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <span style="color: #76B82A; font-weight: bold; font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">EP</span>
+                                    <span style="font-size: 14px;">03457411666</span>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <span style="color: #ED0006; font-weight: bold; font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">JC</span>
+                                    <span style="font-size: 14px;">03457411666</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Thank You Message -->
+                        <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                            ہماری سروسز استعمال کرنے کا شکریہ
+                        </div>
+                    </div>
+                `;
+            }
+        }, 500);
 
         modal.style.display = 'block';
     };
@@ -2290,8 +2408,30 @@ const Home = () => {
                     </table>
                     
                     <div class="footer">
-                        <p class="red-text">درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔</p>
-                        <p>خدمت انچارج: 03457411666</p>
+                        <p class="red-text">درخواست ہے کہ 7 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔</p>
+                    </div>
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 10px; text-align: center; border-top: 1px dashed #000; padding-top: 5px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 12px;">03457411666</span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <span style="color: #ED0006; font-weight: bold; font-size: 12px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">JC</span>
+                                <span style="font-size: 12px;">03457411666</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 10px; text-align: center; font-size: 10px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
             </body>
@@ -3155,8 +3295,25 @@ const Home = () => {
                     <div class="footer">
                         درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
                     </div>
-                    <div class="contact">
-                        خدمت انچارج: 03457411666
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 150px; height:150px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
             </body>
@@ -3262,6 +3419,12 @@ const Home = () => {
     // Function to handle clear daily revenue button click
     const handleClearDailyRevenue = () => {
         clearDailyRevenue();
+    };
+
+    // Helper function to convert an image to a Data URL
+    const convertImgToBase64 = (imgSrc) => {
+        // For imported images, we can use the src directly
+        return imgSrc;
     };
 
     return (
