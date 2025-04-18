@@ -22,7 +22,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 
 const Home = () => {
     // State variables
-    const [activeSection, setActiveSection] = useState('billing');
+    const [activeSection, setActiveSection] = useState(() => {
+        // Try to get the saved section from localStorage, default to 'billing' if not found
+        return localStorage.getItem('activeSection') || 'billing';
+    });
     const [customers, setCustomers] = useState([]);
     const [purchases, setPurchases] = useState([]);
     const [rates, setRates] = useState({ milk: 120, yogurt: 140 });
@@ -1601,6 +1604,8 @@ const Home = () => {
     // UI Helper Functions
     const showSection = (sectionId) => {
         setActiveSection(sectionId);
+        // Save the active section to localStorage
+        localStorage.setItem('activeSection', sectionId);
     };
 
     const showCustomerModal = (mode, customerId = null) => {
