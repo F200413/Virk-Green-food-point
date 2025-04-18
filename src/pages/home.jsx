@@ -19,10 +19,16 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CancelIcon from '@mui/icons-material/Cancel';
-
+import LockIcon from '@mui/icons-material/Lock';
+import easypaisa from '../assets/easy.jpg';
+// Create a placeholder for JazzCash if you don't have an image
+const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
     // State variables
-    const [activeSection, setActiveSection] = useState('billing');
+    const [activeSection, setActiveSection] = useState(() => {
+        // Try to get the saved section from localStorage, default to 'billing' if not found
+        return localStorage.getItem('activeSection') || 'billing';
+    });
     const [customers, setCustomers] = useState([]);
     const [purchases, setPurchases] = useState([]);
     const [rates, setRates] = useState({ milk: 120, yogurt: 140 });
@@ -72,6 +78,13 @@ const Home = () => {
     const [dailyPurchases, setDailyPurchases] = useState([]);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
+    
+    // Password verification for delete operations
+    const [showPasswordVerification, setShowPasswordVerification] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [deleteAction, setDeleteAction] = useState(null);
+    const [deleteParams, setDeleteParams] = useState(null);
 
     // Helper function to round numbers
     const roundNumber = (num) => {
@@ -1076,7 +1089,10 @@ const Home = () => {
 
     // Add a new useEffect to calculate today's sales when bills change
     useEffect(() => {
-        calculateTodaySales();
+        const fetchSales = async () => {
+            await calculateTodaySales();
+        };
+        fetchSales();
     }, [bills]);
 
     // Add this useEffect to monitor selectedCustomer changes
@@ -1155,7 +1171,7 @@ const Home = () => {
             const billsList = billsSnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data(),
-                date: doc.data().date.toDate().toLocaleDateString()
+                date: doc.data().date.toDate().toISOString()
             }));
             setBills(billsList);
         } catch (error) {
@@ -1270,32 +1286,44 @@ const Home = () => {
     };
 
     const deleteCustomer = async (customerId) => {
-        if (window.confirm('Are you sure you want to delete this customer?')) {
+        if (!customerId) return;
+        
+        // Request password verification before proceeding
+        requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
-                await deleteDoc(doc(firestore, 'customers', customerId));
-                fetchCustomers();
+                const customerRef = doc(firestore, 'customers', id);
+                await deleteDoc(customerRef);
+                
+                // Update local state
+                setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== id));
+                
+                setSuccessMessage('گاہک کامیابی سے حذف کر دیا گیا');
+                setShowSuccessPopup(true);
             } catch (error) {
                 console.error("Error deleting customer: ", error);
+                setSuccessMessage("گاہک کو حذف کرنے میں خرابی");
+                setShowSuccessPopup(true);
             } finally {
                 setLoading(false);
             }
-        }
+        }, customerId);
     };
 
     const clearBills = async () => {
-        if (window.confirm('آپ واقعی تمام بلوں کو حذف کرنا چاہتے ہیں؟')) {
+        // Request password verification before proceeding
+        requestPasswordForDelete(async () => {
             setLoading(true);
             try {
                 const billsCollection = collection(firestore, 'bills');
                 const billsSnapshot = await getDocs(billsCollection);
-
+                
                 const deletePromises = billsSnapshot.docs.map(doc =>
                     deleteDoc(doc.ref)
                 );
 
                 await Promise.all(deletePromises);
-                fetchBills();
+                setBills([]); // Clear bills in state
                 setSuccessMessage('تمام بل کامیابی سے حذف کر دیے گئے ہیں');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -1305,7 +1333,7 @@ const Home = () => {
             } finally {
                 setLoading(false);
             }
-        }
+        });
     };
 
     const addPurchase = async () => {
@@ -1327,20 +1355,25 @@ const Home = () => {
             const milkRate = customer && customer.customMilkRate ? parseFloat(customer.customMilkRate) : rates.milk;
             const yogurtRate = customer && customer.customYogurtRate ? parseFloat(customer.customYogurtRate) : rates.yogurt;
 
-            const purchasesCollection = collection(firestore, 'purchases');
-            const milkTotal = milkQty * milkRate;
-            const yogurtTotal = yogurtQty * yogurtRate;
-            const total = milkTotal + yogurtTotal;
+            // Use the selected date for the purchase, but keep current time
+            const purchaseDate = new Date(selectedDate);
+            purchaseDate.setHours(new Date().getHours());
+            purchaseDate.setMinutes(new Date().getMinutes());
+            purchaseDate.setSeconds(new Date().getSeconds());
 
-            await addDoc(purchasesCollection, {
+            const purchaseData = {
                 customerId: selectedCustomer,
                 milk: milkQty,
                 yogurt: yogurtQty,
                 milkRate: milkRate,
                 yogurtRate: yogurtRate,
-                total: total,
-                date: Timestamp.now()
-            });
+                total: (milkQty * milkRate) + (yogurtQty * yogurtRate),
+                date: Timestamp.fromDate(purchaseDate)
+            };
+
+            // Add to Firestore
+            const purchasesCollection = collection(firestore, 'purchases');
+            const docRef = await addDoc(purchasesCollection, purchaseData);
 
             // Update inventory
             const newInventory = {
@@ -1349,11 +1382,27 @@ const Home = () => {
             };
             await updateInventory(newInventory);
 
+            // Update local state immediately
+            const newPurchase = {
+                id: docRef.id,
+                ...purchaseData,
+                date: purchaseDate.toISOString() // Convert to ISO string to match the format
+            };
+
+            // Update purchases state
+            setPurchases(prevPurchases => [...prevPurchases, newPurchase]);
+
+            // Update daily purchases
+            setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, newPurchase]);
+
             setPurchaseFormData({ milk: 0, yogurt: 0 });
             closeModal('purchaseModal');
-            fetchPurchases();
+            
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
             setShowSuccessPopup(true);
+
+            // Fetch fresh data to ensure everything is in sync
+            await fetchPurchases();
         } catch (error) {
             console.error("Error adding purchase: ", error);
         } finally {
@@ -1557,19 +1606,28 @@ const Home = () => {
     };
 
     const deleteAdvancePayment = async (paymentId) => {
-        if (window.confirm('کیا آپ واقعی اس ایڈوانس پیمنٹ کو حذف کرنا چاہتے ہیں؟')) {
+        if (!paymentId) return;
+        
+        // Request password verification before proceeding
+        requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
-                await deleteDoc(doc(firestore, 'advancePayments', paymentId));
-                fetchAdvancePayments();
-                setSuccessMessage('ایڈوانس پیمنٹ کامیابی سے حذف کر دی گئی ہے');
+                const paymentRef = doc(firestore, 'advancePayments', id);
+                await deleteDoc(paymentRef);
+                
+                // Update local state
+                setAdvancePayments(prevPayments => prevPayments.filter(payment => payment.id !== id));
+                
+                setSuccessMessage('ایڈوانس پیمنٹ کامیابی سے حذف کر دی گئی');
                 setShowSuccessPopup(true);
             } catch (error) {
                 console.error("Error deleting advance payment: ", error);
+                setSuccessMessage("ایڈوانس پیمنٹ کو حذف کرنے میں خرابی");
+                setShowSuccessPopup(true);
             } finally {
                 setLoading(false);
             }
-        }
+        }, paymentId);
     };
 
     // Add a function to close the success popup
@@ -1580,6 +1638,8 @@ const Home = () => {
     // UI Helper Functions
     const showSection = (sectionId) => {
         setActiveSection(sectionId);
+        // Save the active section to localStorage
+        localStorage.setItem('activeSection', sectionId);
     };
 
     const showCustomerModal = (mode, customerId = null) => {
@@ -1631,7 +1691,17 @@ const Home = () => {
 
         setSelectedCustomer(customerId);
         setPurchaseFormData({ milk: 0, yogurt: 0 });
+        
+        // Show the modal first so the DOM elements are available
         document.getElementById('purchaseModal').style.display = 'block';
+        
+        // Now reset the amount input fields
+        setTimeout(() => {
+            const milkAmountInput = document.getElementById('milkAmount');
+            const yogurtAmountInput = document.getElementById('yogurtAmount');
+            if (milkAmountInput) milkAmountInput.value = '';
+            if (yogurtAmountInput) yogurtAmountInput.value = '';
+        }, 10);
     };
 
     const closeModal = (modalId) => {
@@ -1685,56 +1755,172 @@ const Home = () => {
             }
         });
 
-        billPrint.innerHTML = `
-            <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
-                <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
-                    ورک گرین فوڈ پوائنٹ
-                    </div>
-                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>تاریخ :</span>
-                        <span>${formattedDate}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>وقت :</span>
-                        <span>${formattedTime}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ٹوکن نمبر :</span>
-                        <span>${bill.tokenNumber || '0'}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>فون ورک :</span>
-                        <span>03457411666</span>
-                    </div>
-                    </div>
+        // Convert image to base64 data URL for use in HTML string
+        const easyPaisaCanvas = document.createElement('canvas');
+        const epCtx = easyPaisaCanvas.getContext('2d');
+        const epImg = new Image();
+        epImg.src = easypaisa;
+        
+        epImg.onload = () => {
+            easyPaisaCanvas.width = epImg.width;
+            easyPaisaCanvas.height = epImg.height;
+            epCtx.drawImage(epImg, 0, 0);
+            const easyPaisaDataURL = easyPaisaCanvas.toDataURL('image/jpeg');
+            
+            billPrint.innerHTML = `
+                <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
+                    <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+                        ورک گرین فوڈ پوائنٹ
+                        </div>
+                    <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>تاریخ :</span>
+                            <span>${formattedDate}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>وقت :</span>
+                            <span>${formattedTime}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>ٹوکن نمبر :</span>
+                            <span>${bill.tokenNumber || '0'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>فون ورک :</span>
+                            <span>03457411666</span>
+                        </div>
+                        </div>
 
-                <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
-                    <thead>
-                        <tr>
-                            <th style="text-align: right;">پرودکٹ</th>
-                            <th style="text-align: center;">آئٹم</th>
-                            <th style="text-align: center;">مقدار</th>
-                            <th style="text-align: center;">قیمت</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${entriesHTML}
-                    </tbody>
-                </table>
-                
-                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                        <span>کُل رقم :</span>
-                        <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: right;">پرودکٹ</th>
+                                <th style="text-align: center;">آئٹم</th>
+                                <th style="text-align: center;">مقدار</th>
+                                <th style="text-align: center;">قیمت</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${entriesHTML}
+                        </tbody>
+                    </table>
+                    
+                    <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span>کُل رقم :</span>
+                            <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>ٹوٹل :</span>
+                            <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                        </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ٹوٹل :</span>
-                        <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easyPaisaDataURL}" alt="EasyPaisa" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${jazzCash}" alt="JazzCash" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        };
+        
+        // In case the image hasn't loaded yet or fails, show the content anyway
+        setTimeout(() => {
+            if (billPrint.innerHTML === '') {
+                // Fallback to the version without the image
+                billPrint.innerHTML = `
+                    <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
+                        <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+                            ورک گرین فوڈ پوائنٹ
+                            </div>
+                        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>تاریخ :</span>
+                                <span>${formattedDate}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>وقت :</span>
+                                <span>${formattedTime}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>ٹوکن نمبر :</span>
+                                <span>${bill.tokenNumber || '0'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>فون ورک :</span>
+                                <span>03457411666</span>
+                            </div>
+                            </div>
+
+                        <table style="width: 100%; border-collapse: collapse; margin: 10px 0; direction: rtl;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: right;">پرودکٹ</th>
+                                    <th style="text-align: center;">آئٹم</th>
+                                    <th style="text-align: center;">مقدار</th>
+                                    <th style="text-align: center;">قیمت</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${entriesHTML}
+                            </tbody>
+                        </table>
+                        
+                        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-top: 5px;">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                                <span>کُل رقم :</span>
+                                <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>ٹوٹل :</span>
+                                <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Methods Section -->
+                        <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                            <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                                <!-- Payment methods in a row, with text instead of images -->
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <span style="color: #76B82A; font-weight: bold; font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">EP</span>
+                                    <span style="font-size: 14px;">03457411666</span>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <span style="color: #ED0006; font-weight: bold; font-size: 14px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">JC</span>
+                                    <span style="font-size: 14px;">03457411666</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Thank You Message -->
+                        <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                            ہماری سروسز استعمال کرنے کا شکریہ
+                        </div>
+                    </div>
+                `;
+            }
+        }, 500);
 
         modal.style.display = 'block';
     };
@@ -2222,8 +2408,30 @@ const Home = () => {
                     </table>
                     
                     <div class="footer">
-                        <p class="red-text">درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔</p>
-                        <p>خدمت انچارج: 03457411666</p>
+                        <p class="red-text">درخواست ہے کہ 7 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔</p>
+                    </div>
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 10px; text-align: center; border-top: 1px dashed #000; padding-top: 5px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 30px; height: 30px; object-fit: contain;" />
+                                <span style="font-size: 12px;">03457411666</span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <span style="color: #ED0006; font-weight: bold; font-size: 12px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">JC</span>
+                                <span style="font-size: 12px;">03457411666</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 10px; text-align: center; font-size: 10px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
             </body>
@@ -2589,42 +2797,69 @@ const Home = () => {
     };
 
     // Add a function to calculate today's sales
-    const calculateTodaySales = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+    const calculateTodaySales = async () => {
+        try {
+            // Check if revenue has been cleared
+            const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
+            const settingsSnapshot = await getDoc(settingsDoc);
+            
+            // Get the settings or create default settings
+            const revenueSettings = settingsSnapshot.exists() 
+                ? settingsSnapshot.data() 
+                : { isCleared: false, lastCleared: null };
+            
+            // If revenue is cleared, just return and don't update the revenue
+            if (revenueSettings.isCleared) {
+                return;
+            }
+            
+            // Otherwise calculate today's revenue
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-        const todayBills = bills.filter(bill => {
-            const billDate = new Date(bill.date);
-            return billDate >= today;
-        });
+            const todayBills = bills.filter(bill => {
+                const billDate = new Date(bill.date);
+                // Compare only the date part (year, month, day)
+                return billDate.getFullYear() === today.getFullYear() &&
+                       billDate.getMonth() === today.getMonth() &&
+                       billDate.getDate() === today.getDate();
+            });
 
-        const todayTotal = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
-        setTodaySales(todayTotal);
+            const todayTotal = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+            setTodaySales(todayTotal);
 
-        // Calculate growth (comparing with previous day)
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const dayBefore = new Date(yesterday);
-        dayBefore.setDate(dayBefore.getDate() - 1);
+            // Calculate growth (comparing with previous day)
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
 
-        const yesterdayBills = bills.filter(bill => {
-            const billDate = new Date(bill.date);
-            return billDate >= yesterday && billDate < today;
-        });
+            const yesterdayBills = bills.filter(bill => {
+                const billDate = new Date(bill.date);
+                return billDate.getFullYear() === yesterday.getFullYear() &&
+                       billDate.getMonth() === yesterday.getMonth() &&
+                       billDate.getDate() === yesterday.getDate();
+            });
 
-        const yesterdayTotal = yesterdayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
+            const yesterdayTotal = yesterdayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
 
-        if (yesterdayTotal > 0) {
-            const growth = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
-            setSalesGrowth(growth);
-        } else {
-            setSalesGrowth(0);
+            if (yesterdayTotal > 0) {
+                const growth = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+                setSalesGrowth(growth);
+            } else {
+                setSalesGrowth(0);
+            }
+            
+            // Update the revenue settings to indicate revenue has been calculated but not cleared
+            await setDoc(settingsDoc, { isCleared: false }, { merge: true });
+            
+        } catch (error) {
+            console.error("Error calculating today's sales: ", error);
         }
     };
 
     // Add a new function to clear monthly purchases
     const clearMonthlyPurchases = async () => {
-      if (window.confirm('کیا آپ واقعی تمام ماہانہ خریداری کو حذف کرنا چاہتے ہیں؟ ایڈوانس اور باقیہ رقم برقرار رہیں گی۔')) {
+      // Request password verification before proceeding
+      requestPasswordForDelete(async () => {
         setLoading(true);
         try {
           // First fetch all the purchases
@@ -2637,7 +2872,8 @@ const Home = () => {
           );
           
           await Promise.all(deletePromises);
-          fetchPurchases(); // Refresh the purchases list
+          setPurchases([]); // Clear purchases in state
+          setDailyPurchases([]); // Clear daily purchases in state
           
           setSuccessMessage('تمام ماہانہ خریداری کامیابی سے حذف کر دی گئی ہیں۔ ایڈوانس اور باقیہ رقم برقرار ہیں۔');
           setShowSuccessPopup(true);
@@ -2648,7 +2884,7 @@ const Home = () => {
         } finally {
           setLoading(false);
         }
-      }
+      });
     };
 
     // Add this function with the other handlers
@@ -3059,8 +3295,25 @@ const Home = () => {
                     <div class="footer">
                         درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
                     </div>
-                    <div class="contact">
-                        خدمت انچارج: 03457411666
+                    
+                    <!-- Payment Methods Section -->
+                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <!-- Payment methods in a row, with smaller images -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 150px; height:150px; object-fit: contain;" />
+                                <span style="font-size: 14px;">03457411666</span>
+                            </div>
+                            
+                            
+                        </div>
+                    </div>
+                    
+                    <!-- Thank You Message -->
+                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
             </body>
@@ -3076,6 +3329,102 @@ const Home = () => {
             printWindow.print();
             printWindow.close();
         }, 500);
+    };
+
+    // Password verification functions
+    const requestPasswordForDelete = (action, params = null) => {
+        setDeleteAction(() => action);
+        setDeleteParams(params);
+        setPasswordInput('');
+        setPasswordError('');
+        setShowPasswordVerification(true);
+    };
+
+    const handlePasswordVerification = () => {
+        // Check if password matches login password
+        if (passwordInput === 'virk0912') {
+            // Password is correct, proceed with deletion
+            setShowPasswordVerification(false);
+            setPasswordInput('');
+            
+            // Execute the requested delete action with params
+            if (deleteAction) {
+                if (deleteParams) {
+                    deleteAction(deleteParams);
+                } else {
+                    deleteAction();
+                }
+            }
+        } else {
+            // Password is incorrect
+            setPasswordError('پاس ورڈ غلط ہے');
+        }
+    };
+    
+    const closePasswordModal = () => {
+        setShowPasswordVerification(false);
+        setPasswordInput('');
+        setPasswordError('');
+    };
+    
+    // Wrapper functions for delete operations that use password verification
+    const handleDeleteSupplier = (supplierId) => {
+        requestPasswordForDelete(deleteSupplier, supplierId);
+    };
+    
+    const handleDeleteCustomer = (customerId) => {
+        requestPasswordForDelete(deleteCustomer, customerId);
+    };
+    
+    const handleDeleteAdvancePayment = (paymentId) => {
+        requestPasswordForDelete(deleteAdvancePayment, paymentId);
+    };
+    
+    const handleClearBills = () => {
+        requestPasswordForDelete(clearBills);
+    };
+    
+    const handleClearMonthlyPurchases = () => {
+        requestPasswordForDelete(clearMonthlyPurchases);
+    };
+
+    // Function to manually clear daily revenue
+    const clearDailyRevenue = async () => {
+        // Request password verification before proceeding
+        requestPasswordForDelete(async () => {
+            setLoading(true);
+            try {
+                // Store the clear date in Firestore to keep track of when revenue was last cleared
+                const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
+                await setDoc(settingsDoc, { 
+                    lastCleared: Timestamp.now(),
+                    isCleared: true
+                }, { merge: true });
+                
+                // Reset the daily sales to 0
+                setTodaySales(0);
+                
+                setSuccessMessage('روزانہ کی آمدنی کامیابی سے صاف کر دی گئی ہے');
+                setShowSuccessPopup(true);
+            } catch (error) {
+                console.error("Error clearing daily revenue: ", error);
+                setSuccessMessage("روزانہ کی آمدنی کو صاف کرنے میں خرابی");
+                setShowSuccessPopup(true);
+            } finally {
+                setLoading(false);
+            }
+        });
+    };
+
+    // Function to handle clear daily revenue button click
+    const handleClearDailyRevenue = () => {
+        clearDailyRevenue();
+    };
+
+    // Helper function to convert an image to a Data URL
+    const convertImgToBase64 = (imgSrc) => {
+        // For imported images, we can use the src directly
+        return imgSrc;
     };
 
     return (
@@ -3191,6 +3540,23 @@ const Home = () => {
                                     </div>
                                     <div className="card-body">
                                         <div className="card-value">Rs.{(todaySales !== undefined ? todaySales.toFixed(2) : '0.00')}</div>
+                                        <button 
+                                            onClick={handleClearDailyRevenue}
+                                            className="clear-revenue-btn"
+                                            disabled={loading}
+                                            style={{
+                                                marginTop: '10px',
+                                                padding: '5px 10px',
+                                                backgroundColor: '#f44336',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            Clear Revenue
+                                        </button>
                                     </div>
                                 </div>
                                 
@@ -3350,6 +3716,9 @@ const Home = () => {
                                         }}
                                         disabled={loading}
                                     />
+                                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                        Rate: Rs. {rates.milk} exactly
+                                    </small>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="yogurtAmount">دہی کی رقم (روپے):</label>
@@ -3367,6 +3736,9 @@ const Home = () => {
                                         }}
                                         disabled={loading}
                                     />
+                                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                        Rate: Rs. {rates.yogurt} exactly
+                                    </small>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="milkQty">دودھ کی مقدار (لیٹر):</label>
@@ -3374,9 +3746,20 @@ const Home = () => {
                                         type="number"
                                         id="milkQty"
                                         name="milkQty"
-                                        readOnly
+                                        min="0"
+                                        step="any"
                                         value={billFormData.milkQty}
-                                        onChange={(e) => handleInputChange(e, setBillFormData, billFormData)}
+                                        onChange={(e) => {
+                                            // Handle normal input change
+                                            handleInputChange(e, setBillFormData, billFormData);
+                                            
+                                            // Calculate and update the amount field
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const amount = qty * rates.milk;
+                                            
+                                            // Update corresponding amount field
+                                            document.getElementById('milkAmount').value = amount.toFixed(2);
+                                        }}
                                         disabled={loading}
                                     />
                                 </div>
@@ -3386,9 +3769,20 @@ const Home = () => {
                                         type="number"
                                         id="yogurtQty"
                                         name="yogurtQty"
-                                        readOnly
+                                        min="0"
+                                        step="any"
                                         value={billFormData.yogurtQty}
-                                        onChange={(e) => handleInputChange(e, setBillFormData, billFormData)}
+                                        onChange={(e) => {
+                                            // Handle normal input change
+                                            handleInputChange(e, setBillFormData, billFormData);
+                                            
+                                            // Calculate and update the amount field
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const amount = qty * rates.yogurt;
+                                            
+                                            // Update corresponding amount field
+                                            document.getElementById('yogurtAmount').value = amount.toFixed(2);
+                                        }}
                                         disabled={loading}
                                     />
                                 </div>
@@ -3415,6 +3809,10 @@ const Home = () => {
                                                     milkQty: 0,
                                                     yogurtQty: 0
                                                 });
+                                                
+                                                // Clear the amount input fields
+                                                document.getElementById('milkAmount').value = '';
+                                                document.getElementById('yogurtAmount').value = '';
                                             } else {
                                                 alert("براہ کرم دودھ یا دہی کی مقدار درج کریں");
                                             }
@@ -3657,7 +4055,7 @@ const Home = () => {
                                                             <EditIcon fontSize="small" />
                                                         </button>
                                                         <button
-                                                            onClick={() => deleteSupplier(supplier.id)}
+                                                            onClick={() => handleDeleteSupplier(supplier.id)}
                                                             className="delete-btn"
                                                             disabled={loading}
                                                         >
@@ -3937,6 +4335,22 @@ const Home = () => {
                                                 {dailyPurchases.length === 0 && showCalendar && (
                                                     <div className="daily-purchases">
                                                         <p>No purchases found for {selectedDate.toLocaleDateString()}</p>
+                                                        <button 
+                                                            className="add-purchase-btn"
+                                                            onClick={() => showPurchaseModal(selectedCustomer)}
+                                                            style={{
+                                                                backgroundColor: '#2d6a4f',
+                                                                color: 'white',
+                                                                padding: '10px 20px',
+                                                                border: 'none',
+                                                                borderRadius: '5px',
+                                                                cursor: 'pointer',
+                                                                marginTop: '15px',
+                                                                fontSize: '16px'
+                                                            }}
+                                                        >
+                                                            خریداری درج کریں
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -4134,17 +4548,13 @@ const Home = () => {
                                     placeholder="رقم درج کریں"
                                     onChange={(e) => {
                                         const amount = parseFloat(e.target.value) || 0;
-                                        // Use customer's custom milk rate if available
-                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate 
-                                            ? parseFloat(selectedCustomerInfo.customMilkRate) 
-                                            : rates.milk;
-                                        const qty = amount / milkRate;
+                                        const qty = amount / rates.milk;
                                         setPurchaseFormData({ ...purchaseFormData, milk: qty.toFixed(2) });
                                     }}
                                     disabled={loading}
                                 />
                                 <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                                    Rate: Rs. {selectedCustomerInfo?.customMilkRate || rates.milk} exactly
+                                    Rate: Rs. {rates.milk} exactly
                                 </small>
                             </div>
                             <div className="form-group">
@@ -4158,21 +4568,17 @@ const Home = () => {
                                     placeholder="رقم درج کریں"
                                     onChange={(e) => {
                                         const amount = parseFloat(e.target.value) || 0;
-                                        // Use customer's custom yogurt rate if available
-                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate 
-                                            ? parseFloat(selectedCustomerInfo.customYogurtRate) 
-                                            : rates.yogurt;
-                                        const qty = amount / yogurtRate;
+                                        const qty = amount / rates.yogurt;
                                         setPurchaseFormData({ ...purchaseFormData, yogurt: qty.toFixed(2) });
                                     }}
                                     disabled={loading}
                                 />
                                 <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                                    Rate: Rs. {selectedCustomerInfo?.customYogurtRate || rates.yogurt} exactly
+                                    Rate: Rs. {rates.yogurt} exactly
                                 </small>
                             </div>
 
-                            {/* Original quantity fields */}
+                            {/* Original quantity fields with automatic price calculation */}
                             <div className="form-group">
                                 <label htmlFor="purchaseMilk">دودھ کی مقدار (لیٹر):</label>
                                 <input
@@ -4180,10 +4586,21 @@ const Home = () => {
                                     id="purchaseMilk"
                                     name="milk"
                                     min="0"
-                                    readOnly
-
+                                    step="any"
                                     value={purchaseFormData.milk}
-                                    onChange={(e) => handleInputChange(e, setPurchaseFormData, purchaseFormData)}
+                                    onChange={(e) => {
+                                        const qty = parseFloat(e.target.value) || 0;
+                                        // Handle normal input change
+                                        handleInputChange(e, setPurchaseFormData, purchaseFormData);
+                                        
+                                        // Calculate milk amount based on quantity
+                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate 
+                                            ? parseFloat(selectedCustomerInfo.customMilkRate) 
+                                            : rates.milk;
+                                        
+                                        // Update corresponding amount field
+                                        document.getElementById('milkAmount').value = (qty * milkRate).toFixed(2);
+                                    }}
                                     disabled={loading}
                                 />
                             </div>
@@ -4194,9 +4611,21 @@ const Home = () => {
                                     id="purchaseYogurt"
                                     name="yogurt"
                                     min="0"
-                                    readOnly
+                                    step="any"
                                     value={purchaseFormData.yogurt}
-                                    onChange={(e) => handleInputChange(e, setPurchaseFormData, purchaseFormData)}
+                                    onChange={(e) => {
+                                        const qty = parseFloat(e.target.value) || 0;
+                                        // Handle normal input change
+                                        handleInputChange(e, setPurchaseFormData, purchaseFormData);
+                                        
+                                        // Calculate yogurt amount based on quantity
+                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate 
+                                            ? parseFloat(selectedCustomerInfo.customYogurtRate) 
+                                            : rates.yogurt;
+                                            
+                                        // Update corresponding amount field
+                                        document.getElementById('yogurtAmount').value = (qty * yogurtRate).toFixed(2);
+                                    }}
                                     disabled={loading}
                                 />
                             </div>
@@ -4287,6 +4716,78 @@ const Home = () => {
                                 >
                                     ٹھیک ہے
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Password Verification Modal */}
+                {showPasswordVerification && (
+                    <div className="modal" style={{ display: 'block' }}>
+                        <div className="modal-content" style={{ maxWidth: '400px' }}>
+                            <span className="close" onClick={closePasswordModal}><CloseIcon /></span>
+                            <div style={{ textAlign: 'center', padding: '20px' }}>
+                                <LockIcon style={{ color: '#e63946', fontSize: '48px', marginBottom: '16px' }} />
+                                <h3 style={{ marginBottom: '15px' }}>پاس ورڈ کی تصدیق</h3>
+                                <p style={{ marginBottom: '20px' }}>براہ کرم، حذف کرنے کے لیے اپنا پاس ورڈ درج کریں۔</p>
+                                
+                                {passwordError && (
+                                    <div style={{ 
+                                        color: '#e63946', 
+                                        backgroundColor: '#ffe3e5', 
+                                        padding: '10px', 
+                                        borderRadius: '5px',
+                                        marginBottom: '15px' 
+                                    }}>
+                                        {passwordError}
+                                    </div>
+                                )}
+                                
+                                <div style={{ marginBottom: '20px' }}>
+                                    <input
+                                        type="password"
+                                        value={passwordInput}
+                                        onChange={(e) => setPasswordInput(e.target.value)}
+                                        placeholder="پاس ورڈ"
+                                        autoComplete="new-password"
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '5px',
+                                            fontSize: '16px'
+                                        }}
+                                    />
+                                </div>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <button 
+                                        onClick={closePasswordModal}
+                                        style={{
+                                            padding: '8px 20px',
+                                            borderRadius: '5px',
+                                            backgroundColor: '#6c757d',
+                                            color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        منسوخ کریں
+                                    </button>
+                                    <button 
+                                        onClick={handlePasswordVerification}
+                                        style={{
+                                            padding: '8px 20px',
+                                            borderRadius: '5px',
+                                            backgroundColor: '#e63946',
+                                            color: 'white',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        تصدیق کریں
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
