@@ -1657,7 +1657,17 @@ const Home = () => {
 
         setSelectedCustomer(customerId);
         setPurchaseFormData({ milk: 0, yogurt: 0 });
+        
+        // Show the modal first so the DOM elements are available
         document.getElementById('purchaseModal').style.display = 'block';
+        
+        // Now reset the amount input fields
+        setTimeout(() => {
+            const milkAmountInput = document.getElementById('milkAmount');
+            const yogurtAmountInput = document.getElementById('yogurtAmount');
+            if (milkAmountInput) milkAmountInput.value = '';
+            if (yogurtAmountInput) yogurtAmountInput.value = '';
+        }, 10);
     };
 
     const closeModal = (modalId) => {
@@ -3376,6 +3386,9 @@ const Home = () => {
                                         }}
                                         disabled={loading}
                                     />
+                                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                        Rate: Rs. {rates.milk} exactly
+                                    </small>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="yogurtAmount">دہی کی رقم (روپے):</label>
@@ -3393,6 +3406,9 @@ const Home = () => {
                                         }}
                                         disabled={loading}
                                     />
+                                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                        Rate: Rs. {rates.yogurt} exactly
+                                    </small>
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="milkQty">دودھ کی مقدار (لیٹر):</label>
@@ -3400,9 +3416,20 @@ const Home = () => {
                                         type="number"
                                         id="milkQty"
                                         name="milkQty"
-                                        readOnly
+                                        min="0"
+                                        step="any"
                                         value={billFormData.milkQty}
-                                        onChange={(e) => handleInputChange(e, setBillFormData, billFormData)}
+                                        onChange={(e) => {
+                                            // Handle normal input change
+                                            handleInputChange(e, setBillFormData, billFormData);
+                                            
+                                            // Calculate and update the amount field
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const amount = qty * rates.milk;
+                                            
+                                            // Update corresponding amount field
+                                            document.getElementById('milkAmount').value = amount.toFixed(2);
+                                        }}
                                         disabled={loading}
                                     />
                                 </div>
@@ -3412,9 +3439,20 @@ const Home = () => {
                                         type="number"
                                         id="yogurtQty"
                                         name="yogurtQty"
-                                        readOnly
+                                        min="0"
+                                        step="any"
                                         value={billFormData.yogurtQty}
-                                        onChange={(e) => handleInputChange(e, setBillFormData, billFormData)}
+                                        onChange={(e) => {
+                                            // Handle normal input change
+                                            handleInputChange(e, setBillFormData, billFormData);
+                                            
+                                            // Calculate and update the amount field
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const amount = qty * rates.yogurt;
+                                            
+                                            // Update corresponding amount field
+                                            document.getElementById('yogurtAmount').value = amount.toFixed(2);
+                                        }}
                                         disabled={loading}
                                     />
                                 </div>
@@ -3441,6 +3479,10 @@ const Home = () => {
                                                     milkQty: 0,
                                                     yogurtQty: 0
                                                 });
+                                                
+                                                // Clear the amount input fields
+                                                document.getElementById('milkAmount').value = '';
+                                                document.getElementById('yogurtAmount').value = '';
                                             } else {
                                                 alert("براہ کرم دودھ یا دہی کی مقدار درج کریں");
                                             }
@@ -4176,17 +4218,13 @@ const Home = () => {
                                     placeholder="رقم درج کریں"
                                     onChange={(e) => {
                                         const amount = parseFloat(e.target.value) || 0;
-                                        // Use customer's custom milk rate if available
-                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate 
-                                            ? parseFloat(selectedCustomerInfo.customMilkRate) 
-                                            : rates.milk;
-                                        const qty = amount / milkRate;
+                                        const qty = amount / rates.milk;
                                         setPurchaseFormData({ ...purchaseFormData, milk: qty.toFixed(2) });
                                     }}
                                     disabled={loading}
                                 />
                                 <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                                    Rate: Rs. {selectedCustomerInfo?.customMilkRate || rates.milk} exactly
+                                    Rate: Rs. {rates.milk} exactly
                                 </small>
                             </div>
                             <div className="form-group">
@@ -4200,21 +4238,17 @@ const Home = () => {
                                     placeholder="رقم درج کریں"
                                     onChange={(e) => {
                                         const amount = parseFloat(e.target.value) || 0;
-                                        // Use customer's custom yogurt rate if available
-                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate 
-                                            ? parseFloat(selectedCustomerInfo.customYogurtRate) 
-                                            : rates.yogurt;
-                                        const qty = amount / yogurtRate;
+                                        const qty = amount / rates.yogurt;
                                         setPurchaseFormData({ ...purchaseFormData, yogurt: qty.toFixed(2) });
                                     }}
                                     disabled={loading}
                                 />
                                 <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                                    Rate: Rs. {selectedCustomerInfo?.customYogurtRate || rates.yogurt} exactly
+                                    Rate: Rs. {rates.yogurt} exactly
                                 </small>
                             </div>
 
-                            {/* Original quantity fields */}
+                            {/* Original quantity fields with automatic price calculation */}
                             <div className="form-group">
                                 <label htmlFor="purchaseMilk">دودھ کی مقدار (لیٹر):</label>
                                 <input
@@ -4222,10 +4256,21 @@ const Home = () => {
                                     id="purchaseMilk"
                                     name="milk"
                                     min="0"
-                                    readOnly
-
+                                    step="any"
                                     value={purchaseFormData.milk}
-                                    onChange={(e) => handleInputChange(e, setPurchaseFormData, purchaseFormData)}
+                                    onChange={(e) => {
+                                        const qty = parseFloat(e.target.value) || 0;
+                                        // Handle normal input change
+                                        handleInputChange(e, setPurchaseFormData, purchaseFormData);
+                                        
+                                        // Calculate milk amount based on quantity
+                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate 
+                                            ? parseFloat(selectedCustomerInfo.customMilkRate) 
+                                            : rates.milk;
+                                        
+                                        // Update corresponding amount field
+                                        document.getElementById('milkAmount').value = (qty * milkRate).toFixed(2);
+                                    }}
                                     disabled={loading}
                                 />
                             </div>
@@ -4236,9 +4281,21 @@ const Home = () => {
                                     id="purchaseYogurt"
                                     name="yogurt"
                                     min="0"
-                                    readOnly
+                                    step="any"
                                     value={purchaseFormData.yogurt}
-                                    onChange={(e) => handleInputChange(e, setPurchaseFormData, purchaseFormData)}
+                                    onChange={(e) => {
+                                        const qty = parseFloat(e.target.value) || 0;
+                                        // Handle normal input change
+                                        handleInputChange(e, setPurchaseFormData, purchaseFormData);
+                                        
+                                        // Calculate yogurt amount based on quantity
+                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate 
+                                            ? parseFloat(selectedCustomerInfo.customYogurtRate) 
+                                            : rates.yogurt;
+                                            
+                                        // Update corresponding amount field
+                                        document.getElementById('yogurtAmount').value = (qty * yogurtRate).toFixed(2);
+                                    }}
                                     disabled={loading}
                                 />
                             </div>
