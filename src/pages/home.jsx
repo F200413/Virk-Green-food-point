@@ -1217,9 +1217,15 @@ const Home = () => {
 
     const updateInventory = async (newInventory) => {
         try {
+            // Ensure inventory values never go below 0
+            const safeInventory = {
+                milk: Math.max(0, newInventory.milk),
+                yogurt: Math.max(0, newInventory.yogurt)
+            };
+            
             const inventoryDoc = doc(firestore, 'settings', 'inventory');
-            await setDoc(inventoryDoc, newInventory);
-            setInventory(newInventory);
+            await setDoc(inventoryDoc, safeInventory);
+            setInventory(safeInventory);
         } catch (error) {
             console.error("Error updating inventory: ", error);
         }
@@ -1375,10 +1381,10 @@ const Home = () => {
             const purchasesCollection = collection(firestore, 'purchases');
             const docRef = await addDoc(purchasesCollection, purchaseData);
 
-            // Update inventory
+            // Update inventory - ensure values never go below 0
             const newInventory = {
-                milk: inventory.milk - milkQty,
-                yogurt: inventory.yogurt - yogurtQty
+                milk: Math.max(0, inventory.milk - milkQty),
+                yogurt: Math.max(0, inventory.yogurt - yogurtQty)
             };
             await updateInventory(newInventory);
 
@@ -1820,18 +1826,7 @@ const Home = () => {
                     <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
                         <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
                         
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
-                            <!-- Payment methods in a row, with smaller images -->
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="${easyPaisaDataURL}" alt="EasyPaisa" style="width: 30px; height: 30px; object-fit: contain;" />
-                                <span style="font-size: 14px;">03457411666</span>
-                            </div>
-                            
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="${jazzCash}" alt="JazzCash" style="width: 30px; height: 30px; object-fit: contain;" />
-                                <span style="font-size: 14px;">03457411666</span>
-                            </div>
-                        </div>
+                    
                     </div>
                     
                     <!-- Thank You Message -->
@@ -1934,7 +1929,7 @@ const Home = () => {
                 <title>Bill Print</title>
                 <style>
                     @media print {
-                        body { margin: 0; }
+                        body { margin: 0; padding: 0; }
                         @page { margin: 0; }
                     }
                 </style>
