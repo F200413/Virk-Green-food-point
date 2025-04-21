@@ -2794,21 +2794,7 @@ const Home = () => {
     // Add a function to calculate today's sales
     const calculateTodaySales = async () => {
         try {
-            // Check if revenue has been cleared
-            const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
-            const settingsSnapshot = await getDoc(settingsDoc);
-            
-            // Get the settings or create default settings
-            const revenueSettings = settingsSnapshot.exists() 
-                ? settingsSnapshot.data() 
-                : { isCleared: false, lastCleared: null };
-            
-            // If revenue is cleared, just return and don't update the revenue
-            if (revenueSettings.isCleared) {
-                return;
-            }
-            
-            // Otherwise calculate today's revenue
+            // Calculate today's revenue
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -2842,10 +2828,6 @@ const Home = () => {
             } else {
                 setSalesGrowth(0);
             }
-            
-            // Update the revenue settings to indicate revenue has been calculated but not cleared
-            await setDoc(settingsDoc, { isCleared: false }, { merge: true });
-            
         } catch (error) {
             console.error("Error calculating today's sales: ", error);
         }
@@ -3389,15 +3371,13 @@ const Home = () => {
         requestPasswordForDelete(async () => {
             setLoading(true);
             try {
-                // Store the clear date in Firestore to keep track of when revenue was last cleared
-                const settingsDoc = doc(firestore, 'settings', 'revenueSettings');
-                await setDoc(settingsDoc, { 
-                    lastCleared: Timestamp.now(),
-                    isCleared: true
-                }, { merge: true });
-                
                 // Reset the daily sales to 0
                 setTodaySales(0);
+                setSalesGrowth(0);
+                
+                // Reset token number to 0
+                const tokenDoc = doc(firestore, 'settings', 'tokenNumber');
+                await setDoc(tokenDoc, { current: 0 });
                 
                 setSuccessMessage('روزانہ کی آمدنی کامیابی سے صاف کر دی گئی ہے');
                 setShowSuccessPopup(true);
