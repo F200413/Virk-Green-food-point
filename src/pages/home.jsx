@@ -203,7 +203,7 @@ const Home = () => {
                 margin-bottom: 5px;
                 color: #495057;
                 font-weight: 600;
-                font-size: 1.1rem;
+                font-size: 0.8rem;
             }
 
             input, select, textarea {
@@ -386,7 +386,7 @@ const Home = () => {
             }
 
             th, td {
-                padding: 12px 15px;
+                padding: 12px 9px;
                 text-align: left;
                 border-bottom: 1px solid #e9ecef;
             }
@@ -395,7 +395,7 @@ const Home = () => {
                 background-color: #f8f9fa;
                 color: #495057;
                 font-weight: 700;
-                font-size: 1.1rem;
+                font-size: 0.75rem;
             }
 
             tr:hover {
@@ -1774,7 +1774,7 @@ const Home = () => {
             const easyPaisaDataURL = easyPaisaCanvas.toDataURL('image/jpeg');
             
             billPrint.innerHTML = `
-                <div style="border: 2px solid black; padding: 10px; width: 300px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
+                <div style="border: 2px solid black; padding: 10px; width: 210px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
                     <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
                         ورک گرین فوڈ پوائنٹ
                         </div>
