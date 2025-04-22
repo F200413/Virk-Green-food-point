@@ -1317,6 +1317,7 @@ const Home = () => {
     };
 
     const clearBills = async () => {
+       
         // Request password verification before proceeding
         requestPasswordForDelete(async () => {
             setLoading(true);
@@ -1330,6 +1331,7 @@ const Home = () => {
 
                 await Promise.all(deletePromises);
                 setBills([]); // Clear bills in state
+                resetTokenCounter();
                 setSuccessMessage('تمام بل کامیابی سے حذف کر دیے گئے ہیں');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -1442,6 +1444,19 @@ const Home = () => {
             await setDoc(tokenDoc, { currentToken: tokenNumber + 1 }, { merge: true });
         } catch (error) {
             console.error("Error updating token number: ", error);
+        }
+    };
+
+    const resetTokenCounter = async () => {
+        try {
+            const tokenDoc = doc(firestore, 'settings', 'tokenCounter');
+            await setDoc(tokenDoc, { currentToken: 0 });
+            setSuccessMessage('ٹوکن کاؤنٹر کامیابی سے ری سیٹ ہو گیا');
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error resetting token counter: ", error);
+            setSuccessMessage("ٹوکن کاؤنٹر کو ری سیٹ کرنے میں خرابی");
+            setShowSuccessPopup(true);
         }
     };
 
