@@ -1672,8 +1672,8 @@ const Home = () => {
                     name: customer.name,
                     phone: customer.phone || '',
                     address: customer.address || '',
-                    customMilkRate: rates.milk, // Default to global rate
-                    customYogurtRate: rates.yogurt // Default to global rate
+                    customMilkRate: customer.customMilkRate || rates.milk,
+                    customYogurtRate: customer.customYogurtRate || rates.yogurt
                 });
                 setSelectedCustomer(customerId);
             }
