@@ -3169,7 +3169,7 @@ const Home = () => {
                     }
                     body { 
                         font-family: Arial, sans-serif;
-                        padding: 0;
+                        padding: 176px;
                         margin: 0;
                         direction: rtl;
                     }
@@ -3180,10 +3180,10 @@ const Home = () => {
                         border: 1px solid black;
                     }
                     .header {
-                        background-color: #c8e6c9;
+                        background-color:rgb(243, 0, 0);
                         text-align: center;
                         font-weight: bold;
-                        padding: 5px;
+                        padding: 12px;
                         border-bottom: 1px solid black;
                     }
                     table {
@@ -3200,7 +3200,7 @@ const Home = () => {
                         border-left: none;
                     }
                     th {
-                        background-color: white;
+                        background-color: red;
                     }
                     .total-row {
                         font-weight: bold;
@@ -3295,7 +3295,7 @@ const Home = () => {
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
                             <!-- Payment methods in a row, with smaller images -->
                             <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 150px; height:150px; object-fit: contain;" />
+                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 190px; height:50px; object-fit: contain;" />
                                 <span style="font-size: 14px;">03457411666</span>
                             </div>
                             
@@ -3316,11 +3316,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
         
-        // Initiate printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
 
     // Password verification functions
