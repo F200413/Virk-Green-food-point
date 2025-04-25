@@ -2137,11 +2137,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // Initiate printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
     
     // Function to print monthly totals
@@ -2256,11 +2256,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
         
-        // Initiate printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
 
     // Add new function for exact receipt format like in the image
@@ -2281,6 +2281,13 @@ const Home = () => {
         const milkTotal = Math.round(monthlyTotals.milk * (customer.customMilkRate || rates.milk));
         const yogurtTotal = Math.round(monthlyTotals.yogurt * (customer.customYogurtRate || rates.yogurt));
         const grandTotal = milkTotal + yogurtTotal;
+        
+        // Get all previous months' balance
+        const pichlaBaqaya = Math.round(getAllPreviousMonthsBalance(customer.id));
+        
+        // Calculate total balance including previous months
+        const totalBalance = Math.round(selectedCustomerBalance);
+        const isCredit = totalBalance <= 0;
         
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
@@ -2350,6 +2357,18 @@ const Home = () => {
                     .red-text {
                         color: red;
                     }
+                    .credit-amount {
+                        color: green;
+                        font-weight: bold;
+                    }
+                    .due-amount {
+                        color: red;
+                        font-weight: bold;
+                    }
+                    .pichla-baqaya {
+                        color: red;
+                        font-weight: bold;
+                    }
                 </style>
             </head>
             <body>
@@ -2402,6 +2421,13 @@ const Home = () => {
                                 <td></td>
                                 <td>${grandTotal}</td>
                             </tr>
+                            ${pichlaBaqaya > 0 ? `
+                            <tr>
+                                <td>پچھلا بقایا</td>
+                                <td></td>
+                                <td></td>
+                                <td class="pichla-baqaya">${pichlaBaqaya}</td>
+                            </tr>` : ''}
                             <tr>
                                 <td>پیشگی ادائیگی</td>
                                 <td></td>
@@ -2412,7 +2438,7 @@ const Home = () => {
                                 <td>کل بقایا رقم</td>
                                 <td></td>
                                 <td></td>
-                                <td>${Math.round(selectedCustomerBalance)}</td>
+                                <td class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(totalBalance)}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -2452,11 +2478,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
         
-        // Initiate printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
 
     // New function to print monthly bill
@@ -2467,8 +2493,7 @@ const Home = () => {
         // Get the customer's information
         const customerName = selectedCustomerInfo ? selectedCustomerInfo.name : 'N/A';
         const customerPhone = selectedCustomerInfo ? (selectedCustomerInfo.phone || 'N/A') : 'N/A';
-        const pichlaBaqaya = selectedCustomerInfo && selectedCustomerInfo.pichlaBaqaya ? selectedCustomerInfo.pichlaBaqaya : 0;
-
+        
         // Get current date and time
         const currentDate = new Date();
         const formattedDate = currentDate.toLocaleDateString();
@@ -2520,7 +2545,38 @@ const Home = () => {
         const monthlyTotals = calculateTotals(monthlyPurchases);
         const totalPurchases = monthlyTotals.amount.toFixed(2);
         const totalAdvance = selectedCustomerAdvanceTotal.toFixed(2);
-        const remainingBalance = (monthlyTotals.amount - selectedCustomerAdvanceTotal).toFixed(2);
+        
+        // Get all previous months' balance up to the selected month
+        // We need to modify this to get balance from all months before the selected month in the selected year
+        let pichlaBaqaya = 0;
+        
+        if (selectedCustomer) {
+            // Loop through months before the selected month in the same year
+            for (let month = 0; month < selectedMonth; month++) {
+                const prevMonthPurchases = filterPurchasesByMonth(selectedCustomer, month, selectedYear);
+                if (prevMonthPurchases.length === 0) continue;
+                
+                const prevMonthTotals = calculateTotals(prevMonthPurchases);
+                
+                // Get advance payments up to the end of that month
+                const endOfPrevMonth = new Date(selectedYear, month + 1, 0, 23, 59, 59, 999);
+                const relevantAdvancePayments = advancePayments.filter(payment => {
+                    if (payment.customerId !== selectedCustomer) return false;
+                    const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+                    return paymentDate <= endOfPrevMonth;
+                });
+                
+                const monthAdvance = relevantAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+                pichlaBaqaya += (prevMonthTotals.amount - monthAdvance);
+            }
+        }
+        
+        // Round pichlaBaqaya
+        pichlaBaqaya = Math.round(pichlaBaqaya);
+        
+        // Calculate remaining balance including previous months balance
+        const remainingBalance = (monthlyTotals.amount + (pichlaBaqaya > 0 ? pichlaBaqaya : 0) - selectedCustomerAdvanceTotal);
+        const isCredit = remainingBalance <= 0;
 
         // Generate purchases HTML for the month
         let purchasesHTML = '';
@@ -2607,6 +2663,18 @@ const Home = () => {
                         font-weight: bold;
                         margin: 10px 0;
                     }
+                    .credit-amount {
+                        color: green;
+                        font-weight: bold;
+                    }
+                    .due-amount {
+                        color: red;
+                        font-weight: bold;
+                    }
+                    .pichla-baqaya {
+                        color: red;
+                        font-weight: bold;
+                    }
                 </style>
             </head>
             <body>
@@ -2649,14 +2717,6 @@ const Home = () => {
                         <tbody>
                             ${purchasesHTML}
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <td colspan="1"><strong>کل</strong></td>
-                                <td><strong>${monthlyTotals.milk.toFixed(1)} لیٹر</strong></td>
-                                <td><strong>${monthlyTotals.yogurt.toFixed(1)} کلو</strong></td>
-                                <td><strong>${totalPurchases} روپے</strong></td>
-                            </tr>
-                        </tfoot>
                     </table>
                     
                     <div class="balance-summary">
@@ -2664,10 +2724,10 @@ const Home = () => {
                             <span>کل خریداری</span>
                             <span class="total-amount">${totalPurchases} روپے</span>
                         </div>
-                        ${pichlaBaqaya !== 0 ? `
+                        ${pichlaBaqaya > 0 ? `
                         <div class="balance-row">
                             <span>پچھلا بقایا:</span>
-                            <span class="pichla-baqaya">${(pichlaBaqaya !== undefined ? pichlaBaqaya.toFixed(2) : '0.00')} روپے</span>
+                            <span class="pichla-baqaya">${pichlaBaqaya.toFixed(2)} روپے</span>
                         </div>` : ''}
                         <div class="balance-row">
                             <span>کل ایڈوانس:</span>
@@ -2675,7 +2735,7 @@ const Home = () => {
                         </div>
                         <div class="balance-row">
                             <span>باقی رقم:</span>
-                            <span class="remaining-balance">${remainingBalance} روپے</span>
+                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance).toFixed(2)} روپے ${isCredit ? '(کریڈٹ)' : '(بقایا)'}</span>
                         </div>
                     </div>
                 </div>
@@ -2687,11 +2747,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // Initiate printing
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
 
     // Update the showCustomerPurchases function
@@ -2761,6 +2821,44 @@ const Home = () => {
                    purchaseDate.getMonth() === month &&
                    purchaseDate.getFullYear() === year;
         });
+    };
+
+    // Add this function after the filterPurchasesByMonth function
+    const getAllPreviousMonthsBalance = (customerId) => {
+        if (!customerId) return 0;
+        
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        // Calculate total balance for all previous months of the current year
+        let totalPreviousBalance = 0;
+        
+        // Loop through all previous months of the current year
+        for (let month = 0; month < currentMonth; month++) {
+            // Get previous month's purchases
+            const prevMonthPurchases = filterPurchasesByMonth(customerId, month, currentYear);
+            if (prevMonthPurchases.length === 0) continue;
+            
+            // Calculate previous month's totals
+            const prevMonthTotals = calculateTotals(prevMonthPurchases);
+            
+            // Get all advance payments up to the end of previous month
+            const endOfPrevMonth = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
+            const relevantAdvancePayments = advancePayments.filter(payment => {
+                if (payment.customerId !== customerId) return false;
+                const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+                return paymentDate <= endOfPrevMonth;
+            });
+            
+            // Calculate total advances for the month
+            const monthAdvance = relevantAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+            
+            // Add month's balance to total
+            totalPreviousBalance += (prevMonthTotals.amount - monthAdvance);
+        }
+        
+        return totalPreviousBalance;
     };
 
     const selectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
@@ -3135,23 +3233,83 @@ const Home = () => {
         const customer = selectedCustomerInfo;
         if (!customer) return;
         
-        // Get monthly totals
-        const monthlyTotals = getCurrentMonthTotals();
-        const currentDate = new Date();
-        const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
+        // Ask user which month to print via a prompt
+        let selectedMonthStr = prompt("Enter month number (1-12):", new Date().getMonth() + 1);
+        let selectedYearStr = prompt("Enter year:", new Date().getFullYear());
+        
+        // Default to current month and year if user cancels or enters invalid data
+        let selectedMonth, selectedYear;
+        
+        if (selectedMonthStr === null || selectedYearStr === null) {
+            // User pressed Cancel
+            return;
+        }
+        
+        // Try to parse the input as numbers
+        selectedMonth = parseInt(selectedMonthStr) - 1; // Convert to 0-based month
+        selectedYear = parseInt(selectedYearStr);
+        
+        // Validate month (0-11) and year (reasonable range)
+        if (isNaN(selectedMonth) || selectedMonth < 0 || selectedMonth > 11 || isNaN(selectedYear)) {
+            alert("Invalid month or year entered.");
+            return;
+        }
+        
+        // Get monthly purchases for selected month
+        const monthlyPurchases = filterPurchasesByMonth(customer.id, selectedMonth, selectedYear);
+        const monthlyTotals = calculateTotals(monthlyPurchases);
+        
+        // Format the date for display
+        const formattedDate = `${new Date().getDate()}/${selectedMonth + 1}/${selectedYear}`;
         
         // Calculate total milk and yogurt
         const milkRate = customer.customMilkRate || rates.milk;
         const yogurtRate = customer.customYogurtRate || rates.yogurt;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
-        const grandTotal = milkTotal + yogurtTotal;
-        const dueAmount = Math.round(selectedCustomerBalance);
+        const thisMonthTotal = milkTotal + yogurtTotal;
+        
+        // Calculate previous balance - all months before the selected month
+        let previousBalance = 0;
+        
+        // Loop through all previous months up to the selected month
+        for (let m = 0; m < selectedMonth; m++) {
+            // Get previous month's purchases
+            const prevMonthPurchases = filterPurchasesByMonth(customer.id, m, selectedYear);
+            if (prevMonthPurchases.length === 0) continue;
+            
+            // Calculate previous month's totals
+            const prevMonthTotals = calculateTotals(prevMonthPurchases);
+            const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
+            const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
+            const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
+            
+            // Add to previous balance
+            previousBalance += prevMonthTotal;
+        }
+        
+        // Get all advance payments up to the end of selected month
+        const endOfSelectedMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+        const allAdvancePayments = advancePayments.filter(payment => {
+            if (payment.customerId !== customer.id) return false;
+            const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+            return paymentDate <= endOfSelectedMonth;
+        });
+        
+        // Calculate total advance payments
+        const totalAdvancePayments = allAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+        
+        // Calculate the grand total including previous balance
+        const grandTotal = thisMonthTotal + previousBalance;
+        
+        // Calculate remaining balance after payments
+        const remainingBalance = grandTotal - totalAdvancePayments;
+        const isCredit = remainingBalance <= 0;
         
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
         
-        // Generate the print content for A4 size - EXACT MATCH to image
+        // Generate the print content for A4 size with running balance format
         const printContent = `
             <html>
             <head>
@@ -3169,7 +3327,7 @@ const Home = () => {
                     }
                     body { 
                         font-family: Arial, sans-serif;
-                        padding: 176px;
+                        padding: 215px;
                         margin: 0;
                         direction: rtl;
                     }
@@ -3215,6 +3373,40 @@ const Home = () => {
                     .contact {
                         text-align: center;
                         font-size: 0.8em;
+                    }
+                    .credit-amount {
+                        color: green;
+                        font-weight: bold;
+                    }
+                    .due-amount {
+                        color: red;
+                        font-weight: bold;
+                    }
+                    .pichla-baqaya {
+                        color: red;
+                        font-weight: bold;
+                    }
+                    .running-balance {
+                        margin-top: 20px;
+                        border: 1px solid black;
+                        padding: 10px;
+                    }
+                    .running-balance-title {
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 1.2em;
+                        margin-bottom: 10px;
+                        border-bottom: 1px solid black;
+                        padding-bottom: 5px;
+                    }
+                    .balance-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 5px 0;
+                        border-bottom: 1px dashed #ccc;
+                    }
+                    .balance-label {
+                        font-weight: bold;
                     }
                 </style>
             </head>
@@ -3265,24 +3457,42 @@ const Home = () => {
                             <td>${yogurtTotal}</td>
                         </tr>` : ''}
                         <tr>
-                            <td>کل فروخت</td>
+                            <td>اس ماہ کل فروخت</td>
                             <td></td>
                             <td></td>
-                            <td>${grandTotal}</td>
-                        </tr>
-                        <tr>
-                            <td>پیشگی ادائیگی</td>
-                            <td></td>
-                            <td></td>
-                            <td>${Math.round(selectedCustomerAdvanceTotal)}</td>
-                        </tr>
-                        <tr>
-                            <td>کل بقایا رقم</td>
-                            <td></td>
-                            <td></td>
-                            <td>${dueAmount}</td>
+                            <td>${thisMonthTotal}</td>
                         </tr>
                     </table>
+                    
+                    <!-- Running Balance Section -->
+                    <div class="running-balance">
+                        <div class="running-balance-title">ماہانہ کھاتہ</div>
+                        
+                        <div class="balance-row">
+                            <span class="balance-label">پچھلا بقایا:</span>
+                            <span>${previousBalance}</span>
+                        </div>
+                        
+                        <div class="balance-row">
+                            <span class="balance-label">اس ماہ کل فروخت:</span>
+                            <span>${thisMonthTotal}</span>
+                        </div>
+                        
+                        <div class="balance-row">
+                            <span class="balance-label">کل بقایا:</span>
+                            <span>${grandTotal}</span>
+                        </div>
+                        
+                        <div class="balance-row">
+                            <span class="balance-label">ادا شدہ رقم:</span>
+                            <span>${totalAdvancePayments}</span>
+                        </div>
+                        
+                        <div class="balance-row" style="border-bottom: none; font-weight: bold; margin-top: 5px;">
+                            <span class="balance-label">باقی رقم:</span>
+                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)}</span>
+                        </div>
+                    </div>
                     
                     <div class="footer">
                         درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
@@ -3305,6 +3515,237 @@ const Home = () => {
                     
                     <!-- Thank You Message -->
                     <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
+                        ہماری سروسز استعمال کرنے کا شکریہ
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        // Write content to the print window
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // // Initiate printing
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
+    };
+
+    // Function for printing a multi-month running balance statement
+    const printMonthlyRunningBalance = () => {
+        // Get selected customer info
+        const customer = selectedCustomerInfo;
+        if (!customer) return;
+        
+        // Ask user which year to print balances for
+        let selectedYearStr = prompt("Enter year for running balance statement:", new Date().getFullYear());
+        
+        // Validate input
+        if (selectedYearStr === null) {
+            return; // User cancelled
+        }
+        
+        const selectedYear = parseInt(selectedYearStr);
+        if (isNaN(selectedYear)) {
+            alert("Invalid year entered.");
+            return;
+        }
+        
+        // Create a new window for the print
+        const printWindow = window.open('', '', 'height=600,width=800');
+        
+        // Calculate data for all months
+        const monthsData = [];
+        let runningBalance = 0;
+        let runningAdvanceTotal = 0;
+        const milkRate = customer.customMilkRate || rates.milk;
+        const yogurtRate = customer.customYogurtRate || rates.yogurt;
+        
+        // Process each month
+        for (let month = 0; month < 12; month++) {
+            // Get monthly purchases for this month
+            const monthlyPurchases = filterPurchasesByMonth(customer.id, month, selectedYear);
+            
+            // Skip months with no activity unless there's a previous balance
+            if (monthlyPurchases.length === 0 && runningBalance === 0) continue;
+            
+            // Calculate this month's totals
+            const monthlyTotals = calculateTotals(monthlyPurchases);
+            const milkTotal = Math.round(monthlyTotals.milk * milkRate);
+            const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
+            const thisMonthTotal = milkTotal + yogurtTotal;
+            
+            // Get payments made during this month
+            const startOfMonth = new Date(selectedYear, month, 1);
+            const endOfMonth = new Date(selectedYear, month + 1, 0, 23, 59, 59, 999);
+            
+            const monthPayments = advancePayments.filter(payment => {
+                if (payment.customerId !== customer.id) return false;
+                const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+                return paymentDate >= startOfMonth && paymentDate <= endOfMonth;
+            });
+            
+            const monthPaymentTotal = monthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+            runningAdvanceTotal += monthPaymentTotal;
+            
+            // Calculate totals
+            const previousBalance = runningBalance;
+            const totalWithPrevious = thisMonthTotal + previousBalance;
+            runningBalance = totalWithPrevious - monthPaymentTotal;
+            
+            // Store month data
+            monthsData.push({
+                month,
+                thisMonthTotal,
+                previousBalance,
+                totalWithPrevious,
+                paid: monthPaymentTotal,
+                remainingBalance: runningBalance
+            });
+        }
+        
+        // Generate the print content for running balance statement
+        const printContent = `
+            <html>
+            <head>
+                <title>Monthly Running Balance - ${customer.name}</title>
+                <style>
+                    @media print {
+                        @page {
+                            size: A4;
+                            margin: 0.5cm;
+                        }
+                        body { 
+                            margin: 0; 
+                            padding: 0;
+                        }
+                    }
+                    body { 
+                        font-family: Arial, sans-serif;
+                        padding: 10px;
+                        margin: 0;
+                        direction: rtl;
+                    }
+                    .statement-container {
+                        width: 100%;
+                        max-width: 21cm;
+                        margin: 0 auto;
+                        border: 1px solid black;
+                    }
+                    .header {
+                        background-color: rgb(243, 0, 0);
+                        text-align: center;
+                        font-weight: bold;
+                        padding: 12px;
+                        border-bottom: 1px solid black;
+                    }
+                    .customer-info {
+                        padding: 10px;
+                        border-bottom: 1px solid black;
+                    }
+                    .month-section {
+                        border: 1px solid #ccc;
+                        margin: 10px;
+                        padding: 10px;
+                    }
+                    .month-title {
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 1.2em;
+                        margin-bottom: 10px;
+                        background-color: #f0f0f0;
+                        padding: 5px;
+                    }
+                    .balance-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 5px 0;
+                        border-bottom: 1px dashed #ccc;
+                    }
+                    .balance-label {
+                        font-weight: bold;
+                        min-width: 150px;
+                    }
+                    .balance-value {
+                        text-align: left;
+                    }
+                    .footer {
+                        padding: 5px;
+                        text-align: center;
+                        font-size: 0.8em;
+                        border-top: 1px solid black;
+                    }
+                    .negative-balance {
+                        color: green;
+                        font-weight: bold;
+                    }
+                    .positive-balance {
+                        color: red;
+                        font-weight: bold;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="statement-container">
+                    <div class="header">
+                        ورک گرین فوڈ پوائنٹ - سالانہ کھاتہ ${selectedYear}
+                    </div>
+                    
+                    <div class="customer-info">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>
+                                <strong>گاہک کا نام:</strong> ${customer.name}
+                            </div>
+                            <div>
+                                <strong>فون:</strong> ${customer.phone || 'N/A'}
+                            </div>
+                            <div>
+                                <strong>تاریخ:</strong> ${new Date().toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${monthsData.map(data => {
+                        const monthNames = [
+                            "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون", 
+                            "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر"
+                        ];
+                        return `
+                            <div class="month-section">
+                                <div class="month-title">${monthNames[data.month]}</div>
+                                
+                                ${data.previousBalance > 0 ? `
+                                <div class="balance-row">
+                                    <span class="balance-label">پچھلا بقایا:</span>
+                                    <span class="balance-value">${data.previousBalance}</span>
+                                </div>` : ''}
+                                
+                                <div class="balance-row">
+                                    <span class="balance-label">اس ماہ کل فروخت:</span>
+                                    <span class="balance-value">${data.thisMonthTotal}</span>
+                                </div>
+                                
+                                <div class="balance-row">
+                                    <span class="balance-label">کل بقایا:</span>
+                                    <span class="balance-value">${data.totalWithPrevious}</span>
+                                </div>
+                                
+                                <div class="balance-row">
+                                    <span class="balance-label">ادا شدہ رقم:</span>
+                                    <span class="balance-value">${data.paid}</span>
+                                </div>
+                                
+                                <div class="balance-row" style="border-bottom: none; font-weight: bold;">
+                                    <span class="balance-label">باقی رقم:</span>
+                                    <span class="balance-value ${data.remainingBalance <= 0 ? 'negative-balance' : 'positive-balance'}">${Math.abs(data.remainingBalance)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                    
+                    <div class="footer">
                         ہماری سروسز استعمال کرنے کا شکریہ
                     </div>
                 </div>
@@ -4284,6 +4725,29 @@ const Home = () => {
                                                         >
                                                             <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
                                                             Print A4 Bill
+                                                        </button>
+                                                        
+                                                        <button 
+                                                            onClick={printMonthlyRunningBalance}
+                                                            className="print-btn"
+                                                            disabled={loading}
+                                                            style={{ 
+                                                                display: 'flex', 
+                                                                alignItems: 'center', 
+                                                                justifyContent: 'center',
+                                                                padding: '8px 15px',
+                                                                backgroundColor: '#3498db',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '5px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '14px',
+                                                                flex: 1,
+                                                                marginLeft: '10px'
+                                                            }}
+                                                        >
+                                                            <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
+                                                            Running Balance
                                                         </button>
                                                     </div>
                                                 </div>
