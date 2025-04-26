@@ -1284,6 +1284,24 @@ const Home = () => {
             fetchCustomers();
             setSuccessMessage('گاہک کی معلومات کامیابی سے اپڈیٹ ہو گئیں');
             setShowSuccessPopup(true);
+            
+            // Refresh the customer info and daily purchases display if this is the currently selected customer
+            if (selectedCustomer) {
+                // This will trigger a re-render with updated rates for the currently viewed customer
+                const updatedCustomerInfo = { ...customerData, id: selectedCustomer };
+                const customer = customers.find(c => c.id === selectedCustomer);
+                if (customer) {
+                    // Only update if the rates actually changed
+                    if (customer.customMilkRate !== customerData.customMilkRate || 
+                        customer.customYogurtRate !== customerData.customYogurtRate) {
+                        // Refresh daily purchases display if there's a selected date
+                        if (selectedDate) {
+                            const filtered = filterPurchasesByDate(selectedDate);
+                            setDailyPurchases(filtered);
+                        }
+                    }
+                }
+            }
         } catch (error) {
             console.error("Error updating customer: ", error);
         } finally {
@@ -1554,8 +1572,15 @@ const Home = () => {
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
             await setDoc(ratesDoc, rates);
-            setSuccessMessage('Rates updated successfully!');
+            closeModal('ratesModal');
+            setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);
+            
+            // If there is a selected date and customer, refresh the daily purchases
+            if (selectedCustomer && selectedDate) {
+                const filtered = filterPurchasesByDate(selectedDate);
+                setDailyPurchases(filtered);
+            }
         } catch (error) {
             console.error("Error updating rates: ", error);
         } finally {
@@ -1790,7 +1815,7 @@ const Home = () => {
             
             billPrint.innerHTML = `
                 <div style="border: 2px solid black; padding: 10px; width: 210px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
-                    <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 5px;">
+                    <div style="text-align: center; font-weight: bold; font-size: 25px; margin-bottom: 5px;">
                         ورک گرین فوڈ پوائنٹ
                         </div>
                     <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
@@ -1837,17 +1862,8 @@ const Home = () => {
                         </div>
                     </div>
                     
-                    <!-- Payment Methods Section -->
-                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
-                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
-                        
-                    
-                    </div>
-                    
-                    <!-- Thank You Message -->
-                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
-                        ہماری سروسز استعمال کرنے کا شکریہ
-                    </div>
+                  
+              
                 </div>
             `;
         };
@@ -2237,6 +2253,14 @@ const Home = () => {
                             <div class="total-label">دہی (Yogurt):</div>
                             <div class="total-value">${monthlyTotals.yogurt.toFixed(1)} کلو</div>
                         </div>
+                        <div class="total-item">
+                            <div class="total-label">Milk Rate:</div>
+                            <div class="total-value">Rs. ${monthlyTotals.milkRate ? monthlyTotals.milkRate.toFixed(2) : rates.milk.toFixed(2)}</div>
+                        </div>
+                        <div class="total-item">
+                            <div class="total-label">Yogurt Rate:</div>
+                            <div class="total-value">Rs. ${monthlyTotals.yogurtRate ? monthlyTotals.yogurtRate.toFixed(2) : rates.yogurt.toFixed(2)}</div>
+                        </div>
                         <div class="total-item total-amount">
                             <div class="total-label">Total Amount:</div>
                             <div class="total-value">Rs. ${Math.round(monthlyTotals.amount)}</div>
@@ -2465,10 +2489,8 @@ const Home = () => {
                         </div>
                     </div>
                     
-                    <!-- Thank You Message -->
-                    <div style="margin-top: 10px; text-align: center; font-size: 10px; font-style: italic;">
-                        ہماری سروسز استعمال کرنے کا شکریہ
-                    </div>
+               
+               
                 </div>
             </body>
             </html>
@@ -2863,7 +2885,17 @@ const Home = () => {
 
     const selectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
     const selectedCustomerInfo = selectedCustomer ? customers.find(c => c.id === selectedCustomer) : null;
-    const selectedCustomerBalance = selectedCustomerTotals.amount - selectedCustomerAdvanceTotal;
+    // Calculate the total amount with custom rates if available
+    let customSelectedCustomerTotals = { ...selectedCustomerTotals };
+    if (selectedCustomerInfo) {
+        const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
+        const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
+        
+        // If the customer has custom rates, recalculate the total amount
+        const calculatedAmount = (selectedCustomerTotals.milk * milkRate) + (selectedCustomerTotals.yogurt * yogurtRate);
+        customSelectedCustomerTotals.amount = calculatedAmount;
+    }
+    const selectedCustomerBalance = customSelectedCustomerTotals.amount - selectedCustomerAdvanceTotal;
 
     // Event handlers
     const handleCustomerFormSubmit = (e) => {
@@ -3140,7 +3172,29 @@ const Home = () => {
         if (selectedCustomer) {
             // For a specific customer
             const monthlyPurchases = filterPurchasesByMonth(selectedCustomer, currentMonth, currentYear);
-            return calculateTotals(monthlyPurchases);
+            const totals = calculateTotals(monthlyPurchases);
+            
+            // If there's a selected customer, also calculate the amount using custom rates
+            if (selectedCustomerInfo) {
+                const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
+                const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
+                
+                // Calculate the total amount using the custom rates
+                const calculatedAmount = (totals.milk * milkRate) + (totals.yogurt * yogurtRate);
+                
+                // Return an updated totals object with the calculated amount
+                return {
+                    ...totals,
+                    milk: totals.milk,
+                    yogurt: totals.yogurt,
+                    amount: calculatedAmount,
+                    // Also include the rates for reference
+                    milkRate: milkRate,
+                    yogurtRate: yogurtRate
+                };
+            }
+            
+            return totals;
         } else {
             // For all customers
             return calculateMonthlySales(currentMonth, currentYear);
@@ -3513,10 +3567,6 @@ const Home = () => {
                         </div>
                     </div>
                     
-                    <!-- Thank You Message -->
-                    <div style="margin-top: 15px; text-align: center; font-size: 12px; font-style: italic;">
-                        ہماری سروسز استعمال کرنے کا شکریہ
-                    </div>
                 </div>
             </body>
             </html>
@@ -3745,9 +3795,7 @@ const Home = () => {
                         `;
                     }).join('')}
                     
-                    <div class="footer">
-                        ہماری سروسز استعمال کرنے کا شکریہ
-                    </div>
+                  
                 </div>
             </body>
             </html>
@@ -3856,6 +3904,16 @@ const Home = () => {
     const convertImgToBase64 = (imgSrc) => {
         // For imported images, we can use the src directly
         return imgSrc;
+    };
+
+    // Function to recalculate purchase amounts based on current rates
+    const recalculatePurchaseAmount = (purchase) => {
+        if (!selectedCustomerInfo) return purchase.total;
+        
+        const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
+        const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
+        
+        return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
     };
 
     return (
@@ -4596,15 +4654,23 @@ const Home = () => {
                                                     <span className="total-label">دہی (Yogurt):</span>
                                                     <span className="total-value">{(selectedCustomerTotals.yogurt !== undefined ? selectedCustomerTotals.yogurt.toFixed(1) : '0.0')} کلو</span>
                                                 </div>
-                                                <div className="total-item total-amount">
+                                                <div className="total-item">
+                                                    <span className="total-label">Milk Rate:</span>
+                                                    <span className="total-value">Rs. {selectedCustomerInfo ? (selectedCustomerInfo.customMilkRate || rates.milk).toFixed(2) : rates.milk.toFixed(2)}</span>
+                                                </div>
+                                                <div className="total-item">
+                                                    <span className="total-label">Yogurt Rate:</span>
+                                                    <span className="total-value">Rs. {selectedCustomerInfo ? (selectedCustomerInfo.customYogurtRate || rates.yogurt).toFixed(2) : rates.yogurt.toFixed(2)}</span>
+                                                </div>
+                                                <div className="total-item total-amount" style={{ gridColumn: 'span 2', borderTop: '1px dashed #ddd', paddingTop: '10px', marginTop: '5px' }}>
                                                     <span className="total-label">Total Amount:</span>
-                                                    <span className="total-value">Rs. {(selectedCustomerTotals.amount !== undefined ? selectedCustomerTotals.amount.toFixed(2) : '0.00')}</span>
+                                                    <span className="total-value">Rs. {(customSelectedCustomerTotals.amount !== undefined ? customSelectedCustomerTotals.amount.toFixed(2) : '0.00')}</span>
                                                 </div>
                                                 <div className="total-item total-payments">
                                                     <span className="total-label">Total Payments:</span>
                                                     <span className="total-value">Rs. {(selectedCustomerAdvanceTotal !== undefined ? selectedCustomerAdvanceTotal.toFixed(2) : '0.00')}</span>
                                                 </div>
-                                                <div className="total-item total-remaining">
+                                                <div className="total-item total-remaining" style={{ gridColumn: 'span 2' }}>
                                                     <span className="total-label">Remaining Balance:</span>
                                                     <span className={`total-value ${selectedCustomerBalance > 0 ? 'balance-due' : 'balance-credit'}`}>
                                                         Rs. {(selectedCustomerBalance !== undefined ? Math.abs(selectedCustomerBalance).toFixed(2) : '0.00')}
@@ -4648,7 +4714,15 @@ const Home = () => {
                                                                     <span className="total-label">دہی (Yogurt):</span>
                                                                     <span className="total-value">{monthlyTotals.yogurt.toFixed(1)} کلو</span>
                                                                 </div>
-                                                                <div className="total-item total-amount">
+                                                                <div className="total-item">
+                                                                    <span className="total-label">Milk Rate:</span>
+                                                                    <span className="total-value">Rs. {monthlyTotals.milkRate ? monthlyTotals.milkRate.toFixed(2) : rates.milk.toFixed(2)}</span>
+                                                                </div>
+                                                                <div className="total-item">
+                                                                    <span className="total-label">Yogurt Rate:</span>
+                                                                    <span className="total-value">Rs. {monthlyTotals.yogurtRate ? monthlyTotals.yogurtRate.toFixed(2) : rates.yogurt.toFixed(2)}</span>
+                                                                </div>
+                                                                <div className="total-item total-amount" style={{ gridColumn: 'span 3', borderTop: '1px dashed #ddd', paddingTop: '10px', marginTop: '5px' }}>
                                                                     <span className="total-label">Total Amount:</span>
                                                                     <span className="total-value">Rs. {monthlyTotals.amount.toFixed(2)}</span>
                                                                 </div>
@@ -4770,7 +4844,7 @@ const Home = () => {
                                                                         <td>{new Date(purchase.date).toLocaleTimeString()}</td>
                                                                         <td>{purchase.milk}</td>
                                                                         <td>{purchase.yogurt}</td>
-                                                                        <td>روپے {(purchase.total !== undefined ? purchase.total.toFixed(2) : '0.00')}</td>
+                                                                        <td>روپے {recalculatePurchaseAmount(purchase).toFixed(2)}</td>
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
@@ -4779,7 +4853,7 @@ const Home = () => {
                                                                     <td><strong>کل</strong></td>
                                                                     <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.milk) || 0), 0)} لیٹر</strong></td>
                                                                     <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.yogurt) || 0), 0)} کلو</strong></td>
-                                                                    <td><strong>روپے {dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.total) || 0), 0)}</strong></td>
+                                                                    <td><strong>روپے {dailyPurchases.reduce((sum, p) => sum + recalculatePurchaseAmount(p), 0).toFixed(2)}</strong></td>
                                                                 </tr>
                                                             </tfoot>
                                                         </table>
