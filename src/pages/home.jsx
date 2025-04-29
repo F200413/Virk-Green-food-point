@@ -78,7 +78,7 @@ const Home = () => {
     const [dailyPurchases, setDailyPurchases] = useState([]);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
-    
+
     // Password verification for delete operations
     const [showPasswordVerification, setShowPasswordVerification] = useState(false);
     const [passwordInput, setPasswordInput] = useState('');
@@ -1222,7 +1222,7 @@ const Home = () => {
                 milk: Math.max(0, newInventory.milk),
                 yogurt: Math.max(0, newInventory.yogurt)
             };
-            
+
             const inventoryDoc = doc(firestore, 'settings', 'inventory');
             await setDoc(inventoryDoc, safeInventory);
             setInventory(safeInventory);
@@ -1240,15 +1240,15 @@ const Home = () => {
                 customMilkRate: parseFloat(formData.customMilkRate) || rates.milk,
                 customYogurtRate: parseFloat(formData.customYogurtRate) || rates.yogurt
             };
-            
+
             const customersCollection = collection(firestore, 'customers');
             await addDoc(customersCollection, customerData);
-            setFormData({ 
-                name: '', 
-                phone: '', 
-                address: '', 
+            setFormData({
+                name: '',
+                phone: '',
+                address: '',
                 customMilkRate: rates.milk,
-                customYogurtRate: rates.yogurt 
+                customYogurtRate: rates.yogurt
             });
             closeModal('customerModal');
             fetchCustomers();
@@ -1270,21 +1270,21 @@ const Home = () => {
                 customMilkRate: parseFloat(formData.customMilkRate) || rates.milk,
                 customYogurtRate: parseFloat(formData.customYogurtRate) || rates.yogurt
             };
-            
+
             const customerDoc = doc(firestore, 'customers', selectedCustomer);
             await updateDoc(customerDoc, customerData);
-            setFormData({ 
-                name: '', 
-                phone: '', 
-                address: '', 
+            setFormData({
+                name: '',
+                phone: '',
+                address: '',
                 customMilkRate: rates.milk,
-                customYogurtRate: rates.yogurt 
+                customYogurtRate: rates.yogurt
             });
             closeModal('customerModal');
             fetchCustomers();
             setSuccessMessage('گاہک کی معلومات کامیابی سے اپڈیٹ ہو گئیں');
             setShowSuccessPopup(true);
-            
+
             // Refresh the customer info and daily purchases display if this is the currently selected customer
             if (selectedCustomer) {
                 // This will trigger a re-render with updated rates for the currently viewed customer
@@ -1292,7 +1292,7 @@ const Home = () => {
                 const customer = customers.find(c => c.id === selectedCustomer);
                 if (customer) {
                     // Only update if the rates actually changed
-                    if (customer.customMilkRate !== customerData.customMilkRate || 
+                    if (customer.customMilkRate !== customerData.customMilkRate ||
                         customer.customYogurtRate !== customerData.customYogurtRate) {
                         // Refresh daily purchases display if there's a selected date
                         if (selectedDate) {
@@ -1311,17 +1311,17 @@ const Home = () => {
 
     const deleteCustomer = async (customerId) => {
         if (!customerId) return;
-        
+
         // Request password verification before proceeding
         requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
                 const customerRef = doc(firestore, 'customers', id);
                 await deleteDoc(customerRef);
-                
+
                 // Update local state
                 setCustomers(prevCustomers => prevCustomers.filter(customer => customer.id !== id));
-                
+
                 setSuccessMessage('گاہک کامیابی سے حذف کر دیا گیا');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -1335,14 +1335,14 @@ const Home = () => {
     };
 
     const clearBills = async () => {
-       
+
         // Request password verification before proceeding
         requestPasswordForDelete(async () => {
             setLoading(true);
             try {
                 const billsCollection = collection(firestore, 'bills');
                 const billsSnapshot = await getDocs(billsCollection);
-                
+
                 const deletePromises = billsSnapshot.docs.map(doc =>
                     deleteDoc(doc.ref)
                 );
@@ -1423,7 +1423,7 @@ const Home = () => {
 
             setPurchaseFormData({ milk: 0, yogurt: 0 });
             closeModal('purchaseModal');
-            
+
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
             setShowSuccessPopup(true);
 
@@ -1441,7 +1441,7 @@ const Home = () => {
         try {
             const tokenDoc = doc(firestore, 'settings', 'tokenCounter');
             const tokenSnapshot = await getDoc(tokenDoc);
-            
+
             if (tokenSnapshot.exists()) {
                 return tokenSnapshot.data().currentToken || 1;
             } else {
@@ -1485,14 +1485,14 @@ const Home = () => {
             // Check if we have at least one entry or direct milk/yogurt quantities
             const hasEntries = billFormData.entries.length > 0;
             const hasDirectQuantities = parseFloat(billFormData.milkQty) > 0 || parseFloat(billFormData.yogurtQty) > 0;
-            
+
             if (!hasEntries && !hasDirectQuantities) {
                 setSuccessMessage("براہ کرم کم از کم ایک اندراج شامل کریں");
                 setShowSuccessPopup(true);
                 setLoading(false);
                 return;
             }
-            
+
             // Add current values as an entry if they exist
             let allEntries = [...billFormData.entries];
             if (hasDirectQuantities) {
@@ -1522,7 +1522,7 @@ const Home = () => {
             }
 
             const billsCollection = collection(firestore, 'bills');
-            
+
             // Get the next token number
             const tokenNumber = await getNextTokenNumber();
 
@@ -1539,25 +1539,25 @@ const Home = () => {
             };
 
             await addDoc(billsCollection, bill);
-            
+
             // Update inventory
             const newInventory = {
                 milk: inventory.milk - totalMilkQty,
                 yogurt: inventory.yogurt - totalYogurtQty
             };
             await updateInventory(newInventory);
-            
+
             // Update the token number for next bill
             await updateTokenNumber(tokenNumber);
-            
+
             // Reset form data
-            setBillFormData({ 
-                customerName: '', 
-                milkQty: 0, 
+            setBillFormData({
+                customerName: '',
+                milkQty: 0,
                 yogurtQty: 0,
                 entries: []
             });
-            
+
             fetchBills();
             showBill(bill);
         } catch (error) {
@@ -1575,7 +1575,7 @@ const Home = () => {
             closeModal('ratesModal');
             setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);
-            
+
             // If there is a selected date and customer, refresh the daily purchases
             if (selectedCustomer && selectedDate) {
                 const filtered = filterPurchasesByDate(selectedDate);
@@ -1592,7 +1592,7 @@ const Home = () => {
         setLoading(true);
         try {
             const amount = parseFloat(advanceFormData.amount);
-            
+
             if (amount <= 0) {
                 setSuccessMessage("رقم صفر سے زیادہ ہونی چاہیے");
                 setShowSuccessPopup(true);
@@ -1624,7 +1624,7 @@ const Home = () => {
         setLoading(true);
         try {
             const amount = parseFloat(advanceFormData.amount);
-            
+
             if (amount <= 0) {
                 setSuccessMessage("رقم صفر سے زیادہ ہونی چاہیے");
                 setShowSuccessPopup(true);
@@ -1653,17 +1653,17 @@ const Home = () => {
 
     const deleteAdvancePayment = async (paymentId) => {
         if (!paymentId) return;
-        
+
         // Request password verification before proceeding
         requestPasswordForDelete(async (id) => {
             setLoading(true);
             try {
                 const paymentRef = doc(firestore, 'advancePayments', id);
                 await deleteDoc(paymentRef);
-                
+
                 // Update local state
                 setAdvancePayments(prevPayments => prevPayments.filter(payment => payment.id !== id));
-                
+
                 setSuccessMessage('ایڈوانس پیمنٹ کامیابی سے حذف کر دی گئی');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -1737,10 +1737,10 @@ const Home = () => {
 
         setSelectedCustomer(customerId);
         setPurchaseFormData({ milk: 0, yogurt: 0 });
-        
+
         // Show the modal first so the DOM elements are available
         document.getElementById('purchaseModal').style.display = 'block';
-        
+
         // Now reset the amount input fields
         setTimeout(() => {
             const milkAmountInput = document.getElementById('milkAmount');
@@ -1765,7 +1765,7 @@ const Home = () => {
 
         // Create bill number (could be sequential or based on timestamp)
         const billNumber = bill.id || '0';
-        
+
         // Get the entries from the bill or create default entries if not found
         const entries = bill.entries || [
             {
@@ -1789,7 +1789,7 @@ const Home = () => {
                     <td style="text-align: center;">${entry.milkTotal.toFixed(2)}</td>
                 </tr>`;
             }
-            
+
             if (entry.yogurtQty > 0) {
                 entriesHTML += `
                 <tr>
@@ -1806,13 +1806,13 @@ const Home = () => {
         const epCtx = easyPaisaCanvas.getContext('2d');
         const epImg = new Image();
         epImg.src = easypaisa;
-        
+
         epImg.onload = () => {
             easyPaisaCanvas.width = epImg.width;
             easyPaisaCanvas.height = epImg.height;
             epCtx.drawImage(epImg, 0, 0);
             const easyPaisaDataURL = easyPaisaCanvas.toDataURL('image/jpeg');
-            
+
             billPrint.innerHTML = `
                 <div style="border: 2px solid black; padding: 10px; width: 210px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
                     <div style="text-align: center; font-weight: bold; font-size: 25px; margin-bottom: 5px;">
@@ -1867,7 +1867,7 @@ const Home = () => {
                 </div>
             `;
         };
-        
+
         // In case the image hasn't loaded yet or fails, show the content anyway
         setTimeout(() => {
             if (billPrint.innerHTML === '') {
@@ -2159,7 +2159,7 @@ const Home = () => {
         //     printWindow.close();
         // }, 500);
     };
-    
+
     // Function to print monthly totals
     const printMonthlyTotals = () => {
         const monthlyTotals = getCurrentMonthTotals();
@@ -2168,10 +2168,10 @@ const Home = () => {
         const monthNames = ["January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"];
         const monthName = monthNames[currentMonth];
-        
+
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
-        
+
         // Generate the print content
         const printContent = `
             <html>
@@ -2204,7 +2204,7 @@ const Home = () => {
                         font-size: 18px;
                         margin: 10px 0;
                     }
-                    .divider {
+                    .divider {e
                         border-top: 1px dashed #000;
                         margin: 10px 0;
                     }
@@ -2275,11 +2275,11 @@ const Home = () => {
             </body>
             </html>
         `;
-        
+
         // Write content to the print window
         printWindow.document.write(printContent);
         printWindow.document.close();
-        
+
         // // Initiate printing
         // setTimeout(() => {
         //     printWindow.print();
@@ -2292,30 +2292,30 @@ const Home = () => {
         // Get selected customer info
         const customer = selectedCustomerInfo;
         if (!customer) return;
-        
+
         // Get monthly totals
         const monthlyTotals = getCurrentMonthTotals();
         const currentDate = new Date();
         const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
-        
+
         // Create a bill number
         const billNumber = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        
+
         // Calculate total milk and yogurt
         const milkTotal = Math.round(monthlyTotals.milk * (customer.customMilkRate || rates.milk));
         const yogurtTotal = Math.round(monthlyTotals.yogurt * (customer.customYogurtRate || rates.yogurt));
         const grandTotal = milkTotal + yogurtTotal;
-        
+
         // Get all previous months' balance
         const pichlaBaqaya = Math.round(getAllPreviousMonthsBalance(customer.id));
-        
+
         // Calculate total balance including previous months
         const totalBalance = Math.round(selectedCustomerBalance);
         const isCredit = totalBalance <= 0;
-        
+
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
-        
+
         // Generate the print content - matching exactly the image format
         const printContent = `
             <html>
@@ -2495,11 +2495,11 @@ const Home = () => {
             </body>
             </html>
         `;
-        
+
         // Write content to the print window
         printWindow.document.write(printContent);
         printWindow.document.close();
-        
+
         // // Initiate printing
         // setTimeout(() => {
         //     printWindow.print();
@@ -2515,7 +2515,7 @@ const Home = () => {
         // Get the customer's information
         const customerName = selectedCustomerInfo ? selectedCustomerInfo.name : 'N/A';
         const customerPhone = selectedCustomerInfo ? (selectedCustomerInfo.phone || 'N/A') : 'N/A';
-        
+
         // Get current date and time
         const currentDate = new Date();
         const formattedDate = currentDate.toLocaleDateString();
@@ -2524,27 +2524,27 @@ const Home = () => {
         // Ask user which month to print via a prompt
         let selectedMonthStr = prompt("Enter month number (1-12):", currentDate.getMonth() + 1);
         let selectedYearStr = prompt("Enter year:", currentDate.getFullYear());
-        
+
         // Default to current month and year if user cancels or enters invalid data
         let selectedMonth, selectedYear;
-        
+
         if (selectedMonthStr === null || selectedYearStr === null) {
             // User pressed Cancel
             printWindow.close();
             return;
         }
-        
+
         // Try to parse the input as numbers
         selectedMonth = parseInt(selectedMonthStr) - 1; // Convert to 0-based month
         selectedYear = parseInt(selectedYearStr);
-        
+
         // Validate month (0-11) and year (reasonable range)
         if (isNaN(selectedMonth) || selectedMonth < 0 || selectedMonth > 11) {
             // Invalid month - use current month
             selectedMonth = currentDate.getMonth();
             alert("Invalid month entered. Using current month (" + (currentDate.getMonth() + 1) + ").");
         }
-        
+
         if (isNaN(selectedYear) || selectedYear < 2000 || selectedYear > 2100) {
             // Invalid year - use current year
             selectedYear = currentDate.getFullYear();
@@ -2553,10 +2553,10 @@ const Home = () => {
 
         // Get the purchases for the selected month and year
         const monthlyPurchases = filterPurchasesByMonth(selectedCustomer, selectedMonth, selectedYear);
-        
+
         // If no purchases found for the selected month, show an alert and return
         if (monthlyPurchases.length === 0) {
-            const monthNames = ["January", "February", "March", "April", "May", "June", 
+            const monthNames = ["January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"];
             alert(`No purchases found for ${monthNames[selectedMonth]} ${selectedYear}. Please try a different month.`);
             printWindow.close();
@@ -2567,19 +2567,19 @@ const Home = () => {
         const monthlyTotals = calculateTotals(monthlyPurchases);
         const totalPurchases = monthlyTotals.amount.toFixed(2);
         const totalAdvance = selectedCustomerAdvanceTotal.toFixed(2);
-        
+
         // Get all previous months' balance up to the selected month
         // We need to modify this to get balance from all months before the selected month in the selected year
         let pichlaBaqaya = 0;
-        
+
         if (selectedCustomer) {
             // Loop through months before the selected month in the same year
             for (let month = 0; month < selectedMonth; month++) {
                 const prevMonthPurchases = filterPurchasesByMonth(selectedCustomer, month, selectedYear);
                 if (prevMonthPurchases.length === 0) continue;
-                
+
                 const prevMonthTotals = calculateTotals(prevMonthPurchases);
-                
+
                 // Get advance payments up to the end of that month
                 const endOfPrevMonth = new Date(selectedYear, month + 1, 0, 23, 59, 59, 999);
                 const relevantAdvancePayments = advancePayments.filter(payment => {
@@ -2587,15 +2587,15 @@ const Home = () => {
                     const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
                     return paymentDate <= endOfPrevMonth;
                 });
-                
+
                 const monthAdvance = relevantAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
                 pichlaBaqaya += (prevMonthTotals.amount - monthAdvance);
             }
         }
-        
+
         // Round pichlaBaqaya
         pichlaBaqaya = Math.round(pichlaBaqaya);
-        
+
         // Calculate remaining balance including previous months balance
         const remainingBalance = (monthlyTotals.amount + (pichlaBaqaya > 0 ? pichlaBaqaya : 0) - selectedCustomerAdvanceTotal);
         const isCredit = remainingBalance <= 0;
@@ -2783,34 +2783,78 @@ const Home = () => {
     };
 
     // Filter functions
-    const filteredCustomers = customers.filter(customer =>
-        customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(customerSearchTerm)) ||
-        (customer.address && customer.address.toLowerCase().includes(customerSearchTerm))
-    );
+    const filteredCustomers = customers
+        .filter(customer =>
+            customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+            (customer.phone && customer.phone.includes(customerSearchTerm)) ||
+            (customer.address && customer.address.toLowerCase().includes(customerSearchTerm))
+        )
+        .sort((a, b) => {
+            // Find all numbers in the name and get the last one
+            const aNumbers = a.name.match(/\d+/g);
+            const bNumbers = b.name.match(/\d+/g);
 
-    const filteredCustomersList = customers.filter(customer =>
-        customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
-    );
+            const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
+            const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
+
+            // If both have numbers, compare them numerically
+            if (aLastNumber && bLastNumber) {
+                // Remove leading zeros and convert to numbers
+                const aNum = parseInt(aLastNumber.replace(/^0+/, ''), 10) || 0;
+                const bNum = parseInt(bLastNumber.replace(/^0+/, ''), 10) || 0;
+                return aNum - bNum;
+            }
+            // If only one has a number, prioritize it
+            if (aLastNumber) return -1;
+            if (bLastNumber) return 1;
+            // If neither has a number, sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
+
+    const filteredCustomersList = customers
+        .filter(customer =>
+            customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Find all numbers in the name and get the last one
+            const aNumbers = a.name.match(/\d+/g);
+            const bNumbers = b.name.match(/\d+/g);
+
+            const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
+            const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
+
+            // If both have numbers, compare them numerically
+            if (aLastNumber && bLastNumber) {
+                // Remove leading zeros and convert to numbers
+                const aNum = parseInt(aLastNumber.replace(/^0+/, ''), 10) || 0;
+                const bNum = parseInt(bLastNumber.replace(/^0+/, ''), 10) || 0;
+                return aNum - bNum;
+            }
+            // If only one has a number, prioritize it
+            if (aLastNumber) return -1;
+            if (bLastNumber) return 1;
+            // If neither has a number, sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
 
     // Improve the filterPurchasesByDate function for better date handling
     const filterPurchasesByDate = (date) => {
         if (!selectedCustomer) return [];
-        
+
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
-        
+
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
-        
+
         return purchases.filter(purchase => {
             if (!purchase.date) return false;
-            const purchaseDate = purchase.date instanceof Date ? 
-                purchase.date : 
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
                 new Date(purchase.date);
-            return purchase.customerId === selectedCustomer && 
-                   purchaseDate >= startOfDay && 
-                   purchaseDate <= endOfDay;
+            return purchase.customerId === selectedCustomer &&
+                purchaseDate >= startOfDay &&
+                purchaseDate <= endOfDay;
         });
     };
 
@@ -2833,38 +2877,38 @@ const Home = () => {
     // New function to filter purchases by month and year
     const filterPurchasesByMonth = (customerId, month, year) => {
         if (!customerId) return [];
-        
+
         return purchases.filter(purchase => {
             if (!purchase.date) return false;
-            const purchaseDate = purchase.date instanceof Date ? 
-                purchase.date : 
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
                 new Date(purchase.date);
-            return purchase.customerId === customerId && 
-                   purchaseDate.getMonth() === month &&
-                   purchaseDate.getFullYear() === year;
+            return purchase.customerId === customerId &&
+                purchaseDate.getMonth() === month &&
+                purchaseDate.getFullYear() === year;
         });
     };
 
     // Add this function after the filterPurchasesByMonth function
     const getAllPreviousMonthsBalance = (customerId) => {
         if (!customerId) return 0;
-        
+
         const currentDate = new Date();
         const currentMonth = currentDate.getMonth();
         const currentYear = currentDate.getFullYear();
-        
+
         // Calculate total balance for all previous months of the current year
         let totalPreviousBalance = 0;
-        
+
         // Loop through all previous months of the current year
         for (let month = 0; month < currentMonth; month++) {
             // Get previous month's purchases
             const prevMonthPurchases = filterPurchasesByMonth(customerId, month, currentYear);
             if (prevMonthPurchases.length === 0) continue;
-            
+
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
-            
+
             // Get all advance payments up to the end of previous month
             const endOfPrevMonth = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
             const relevantAdvancePayments = advancePayments.filter(payment => {
@@ -2872,14 +2916,14 @@ const Home = () => {
                 const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
                 return paymentDate <= endOfPrevMonth;
             });
-            
+
             // Calculate total advances for the month
             const monthAdvance = relevantAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
-            
+
             // Add month's balance to total
             totalPreviousBalance += (prevMonthTotals.amount - monthAdvance);
         }
-        
+
         return totalPreviousBalance;
     };
 
@@ -2890,7 +2934,7 @@ const Home = () => {
     if (selectedCustomerInfo) {
         const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
         const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
-        
+
         // If the customer has custom rates, recalculate the total amount
         const calculatedAmount = (selectedCustomerTotals.milk * milkRate) + (selectedCustomerTotals.yogurt * yogurtRate);
         customSelectedCustomerTotals.amount = calculatedAmount;
@@ -2947,8 +2991,8 @@ const Home = () => {
                 const billDate = new Date(bill.date);
                 // Compare only the date part (year, month, day)
                 return billDate.getFullYear() === today.getFullYear() &&
-                       billDate.getMonth() === today.getMonth() &&
-                       billDate.getDate() === today.getDate();
+                    billDate.getMonth() === today.getMonth() &&
+                    billDate.getDate() === today.getDate();
             });
 
             const todayTotal = todayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
@@ -2961,8 +3005,8 @@ const Home = () => {
             const yesterdayBills = bills.filter(bill => {
                 const billDate = new Date(bill.date);
                 return billDate.getFullYear() === yesterday.getFullYear() &&
-                       billDate.getMonth() === yesterday.getMonth() &&
-                       billDate.getDate() === yesterday.getDate();
+                    billDate.getMonth() === yesterday.getMonth() &&
+                    billDate.getDate() === yesterday.getDate();
             });
 
             const yesterdayTotal = yesterdayBills.reduce((sum, bill) => sum + bill.grandTotal, 0);
@@ -2980,33 +3024,33 @@ const Home = () => {
 
     // Add a new function to clear monthly purchases
     const clearMonthlyPurchases = async () => {
-      // Request password verification before proceeding
-      requestPasswordForDelete(async () => {
-        setLoading(true);
-        try {
-          // First fetch all the purchases
-          const purchasesCollection = collection(firestore, 'purchases');
-          const purchasesSnapshot = await getDocs(purchasesCollection);
-          
-          // Create delete promises for all purchases
-          const deletePromises = purchasesSnapshot.docs.map(doc =>
-            deleteDoc(doc.ref)
-          );
-          
-          await Promise.all(deletePromises);
-          setPurchases([]); // Clear purchases in state
-          setDailyPurchases([]); // Clear daily purchases in state
-          
-          setSuccessMessage('تمام ماہانہ خریداری کامیابی سے حذف کر دی گئی ہیں۔ ایڈوانس اور باقیہ رقم برقرار ہیں۔');
-          setShowSuccessPopup(true);
-        } catch (error) {
-          console.error("Error clearing monthly purchases: ", error);
-          setSuccessMessage("ماہانہ خریداری کو حذف کرنے میں خرابی");
-          setShowSuccessPopup(true);
-        } finally {
-          setLoading(false);
-        }
-      });
+        // Request password verification before proceeding
+        requestPasswordForDelete(async () => {
+            setLoading(true);
+            try {
+                // First fetch all the purchases
+                const purchasesCollection = collection(firestore, 'purchases');
+                const purchasesSnapshot = await getDocs(purchasesCollection);
+
+                // Create delete promises for all purchases
+                const deletePromises = purchasesSnapshot.docs.map(doc =>
+                    deleteDoc(doc.ref)
+                );
+
+                await Promise.all(deletePromises);
+                setPurchases([]); // Clear purchases in state
+                setDailyPurchases([]); // Clear daily purchases in state
+
+                setSuccessMessage('تمام ماہانہ خریداری کامیابی سے حذف کر دی گئی ہیں۔ ایڈوانس اور باقیہ رقم برقرار ہیں۔');
+                setShowSuccessPopup(true);
+            } catch (error) {
+                console.error("Error clearing monthly purchases: ", error);
+                setSuccessMessage("ماہانہ خریداری کو حذف کرنے میں خرابی");
+                setShowSuccessPopup(true);
+            } finally {
+                setLoading(false);
+            }
+        });
     };
 
     // Add this function with the other handlers
@@ -3059,14 +3103,14 @@ const Home = () => {
                 lastUpdate: Timestamp.now()
             };
             await addDoc(suppliersCollection, supplierData);
-            
+
             // Update total inventory
             const newInventory = {
                 milk: inventory.milk + (parseFloat(formData.milkQuantity) || 0),
                 yogurt: inventory.yogurt + (parseFloat(formData.yogurtQuantity) || 0)
             };
             await updateInventory(newInventory);
-            
+
             setFormData({ name: '', phone: '', milkQuantity: 0, yogurtQuantity: 0 });
             closeModal('supplierModal');
             fetchSuppliers();
@@ -3089,7 +3133,7 @@ const Home = () => {
                 lastUpdate: Timestamp.now()
             };
             await updateDoc(supplierDoc, supplierData);
-            
+
             // Update total inventory
             const milkDiff = (parseFloat(formData.milkQuantity) || 0) - (parseFloat(oldSupplier.milkQuantity) || 0);
             const yogurtDiff = (parseFloat(formData.yogurtQuantity) || 0) - (parseFloat(oldSupplier.yogurtQuantity) || 0);
@@ -3098,7 +3142,7 @@ const Home = () => {
                 yogurt: inventory.yogurt + yogurtDiff
             };
             await updateInventory(newInventory);
-            
+
             setFormData({ name: '', phone: '', milkQuantity: 0, yogurtQuantity: 0 });
             closeModal('supplierModal');
             fetchSuppliers();
@@ -3117,14 +3161,14 @@ const Home = () => {
             try {
                 const supplier = suppliers.find(s => s.id === supplierId);
                 await deleteDoc(doc(firestore, 'suppliers', supplierId));
-                
+
                 // Update total inventory
                 const newInventory = {
                     milk: inventory.milk - (parseFloat(supplier.milkQuantity) || 0),
                     yogurt: inventory.yogurt - (parseFloat(supplier.yogurtQuantity) || 0)
                 };
                 await updateInventory(newInventory);
-                
+
                 fetchSuppliers();
                 setSuccessMessage('سپلائر کامیابی سے حذف ہو گیا');
                 setShowSuccessPopup(true);
@@ -3146,7 +3190,23 @@ const Home = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            setSuppliers(suppliersList);
+
+            // Sort suppliers based on their index numbers
+            const sortedSuppliers = suppliersList.sort((a, b) => {
+                // Extract index numbers from supplier names
+                const getIndex = (name) => {
+                    const match = name.match(/^(\d+)/);
+                    return match ? parseInt(match[1]) : 0;
+                };
+
+                const indexA = getIndex(a.name);
+                const indexB = getIndex(b.name);
+
+                // Sort in descending order (higher index first)
+                return indexB - indexA;
+            });
+
+            setSuppliers(sortedSuppliers);
         } catch (error) {
             console.error("Error fetching suppliers: ", error);
         } finally {
@@ -3159,7 +3219,7 @@ const Home = () => {
         setSelectedDate(date);
         const filtered = filterPurchasesByDate(date);
         setDailyPurchases(filtered);
-        
+
         // No need to recalculate monthly totals on each date change
         // We'll calculate them when we need to display them
     };
@@ -3168,20 +3228,20 @@ const Home = () => {
     const getCurrentMonthTotals = () => {
         const currentMonth = selectedDate.getMonth();
         const currentYear = selectedDate.getFullYear();
-        
+
         if (selectedCustomer) {
             // For a specific customer
             const monthlyPurchases = filterPurchasesByMonth(selectedCustomer, currentMonth, currentYear);
             const totals = calculateTotals(monthlyPurchases);
-            
+
             // If there's a selected customer, also calculate the amount using custom rates
             if (selectedCustomerInfo) {
                 const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
                 const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
-                
+
                 // Calculate the total amount using the custom rates
                 const calculatedAmount = (totals.milk * milkRate) + (totals.yogurt * yogurtRate);
-                
+
                 // Return an updated totals object with the calculated amount
                 return {
                     ...totals,
@@ -3193,7 +3253,7 @@ const Home = () => {
                     yogurtRate: yogurtRate
                 };
             }
-            
+
             return totals;
         } else {
             // For all customers
@@ -3206,10 +3266,10 @@ const Home = () => {
         if (view === 'month' && selectedCustomer) {
             const hasContent = purchases.some(purchase => {
                 const purchaseDate = new Date(purchase.date);
-                return purchase.customerId === selectedCustomer && 
-                       purchaseDate.getDate() === date.getDate() &&
-                       purchaseDate.getMonth() === date.getMonth() &&
-                       purchaseDate.getFullYear() === date.getFullYear();
+                return purchase.customerId === selectedCustomer &&
+                    purchaseDate.getDate() === date.getDate() &&
+                    purchaseDate.getMonth() === date.getMonth() &&
+                    purchaseDate.getFullYear() === date.getFullYear();
             });
             return hasContent ? 'calendar-tile-purchase-day' : null;
         }
@@ -3218,15 +3278,15 @@ const Home = () => {
     // Add a function to handle payment submission
     const handlePaymentSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!selectedCustomer || !paymentAmount || parseFloat(paymentAmount) <= 0) {
             setSuccessMessage('Please enter a valid payment amount');
             setShowSuccessPopup(true);
             return;
         }
-        
+
         setPaymentProcessing(true);
-        
+
         try {
             // Create a new payment record in Firestore
             const paymentData = {
@@ -3235,21 +3295,21 @@ const Home = () => {
                 description: 'Bill Payment',
                 date: Timestamp.now()
             };
-            
+
             // Add payment to advance payments collection
             const advanceCollection = collection(firestore, 'advancePayments');
             await addDoc(advanceCollection, paymentData);
-            
+
             // Refresh advance payments
             await fetchAdvancePayments();
-            
+
             // Clear the payment input
             setPaymentAmount('');
-            
+
             // Show success message
             setSuccessMessage('Payment recorded successfully');
             setShowSuccessPopup(true);
-            
+
         } catch (error) {
             console.error("Error recording payment: ", error);
             setSuccessMessage("Failed to record payment. Please try again.");
@@ -3264,15 +3324,15 @@ const Home = () => {
         // This assumes purchases has been loaded
         const startOfMonth = new Date(year, month, 1);
         const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-        
+
         // Filter purchases for this month across all customers
         const monthlyPurchases = purchases.filter(purchase => {
-            const purchaseDate = purchase.date instanceof Date ? 
-                purchase.date : 
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
                 new Date(purchase.date);
             return purchaseDate >= startOfMonth && purchaseDate <= endOfMonth;
         });
-        
+
         // Calculate the totals
         return monthlyPurchases.reduce((acc, curr) => ({
             milk: acc.milk + (parseFloat(curr.milk) || 0),
@@ -3286,62 +3346,62 @@ const Home = () => {
         // Get selected customer info
         const customer = selectedCustomerInfo;
         if (!customer) return;
-        
+
         // Ask user which month to print via a prompt
         let selectedMonthStr = prompt("Enter month number (1-12):", new Date().getMonth() + 1);
         let selectedYearStr = prompt("Enter year:", new Date().getFullYear());
-        
+
         // Default to current month and year if user cancels or enters invalid data
         let selectedMonth, selectedYear;
-        
+
         if (selectedMonthStr === null || selectedYearStr === null) {
             // User pressed Cancel
             return;
         }
-        
+
         // Try to parse the input as numbers
         selectedMonth = parseInt(selectedMonthStr) - 1; // Convert to 0-based month
         selectedYear = parseInt(selectedYearStr);
-        
+
         // Validate month (0-11) and year (reasonable range)
         if (isNaN(selectedMonth) || selectedMonth < 0 || selectedMonth > 11 || isNaN(selectedYear)) {
             alert("Invalid month or year entered.");
             return;
         }
-        
+
         // Get monthly purchases for selected month
         const monthlyPurchases = filterPurchasesByMonth(customer.id, selectedMonth, selectedYear);
         const monthlyTotals = calculateTotals(monthlyPurchases);
-        
+
         // Format the date for display
         const formattedDate = `${new Date().getDate()}/${selectedMonth + 1}/${selectedYear}`;
-        
+
         // Calculate total milk and yogurt
         const milkRate = customer.customMilkRate || rates.milk;
         const yogurtRate = customer.customYogurtRate || rates.yogurt;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
-        
+
         // Calculate previous balance - all months before the selected month
         let previousBalance = 0;
-        
+
         // Loop through all previous months up to the selected month
         for (let m = 0; m < selectedMonth; m++) {
             // Get previous month's purchases
             const prevMonthPurchases = filterPurchasesByMonth(customer.id, m, selectedYear);
             if (prevMonthPurchases.length === 0) continue;
-            
+
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
             const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
             const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
-            
+
             // Add to previous balance
             previousBalance += prevMonthTotal;
         }
-        
+
         // Get all advance payments up to the end of selected month
         const endOfSelectedMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
         const allAdvancePayments = advancePayments.filter(payment => {
@@ -3349,20 +3409,20 @@ const Home = () => {
             const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
             return paymentDate <= endOfSelectedMonth;
         });
-        
+
         // Calculate total advance payments
         const totalAdvancePayments = allAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
-        
+
         // Calculate the grand total including previous balance
         const grandTotal = thisMonthTotal + previousBalance;
-        
+
         // Calculate remaining balance after payments
         const remainingBalance = grandTotal - totalAdvancePayments;
         const isCredit = remainingBalance <= 0;
-        
+
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
-        
+
         // Generate the print content for A4 size with running balance format
         const printContent = `
             <html>
@@ -3372,7 +3432,7 @@ const Home = () => {
                     @media print {
                         @page {
                             size: A4;
-                            margin: 0.5cm;
+                            margin: 0.6cm;
                         }
                         body { 
                             margin: 0; 
@@ -3382,7 +3442,8 @@ const Home = () => {
                     body { 
                         font-family: Arial, sans-serif;
                         padding: 215px;
-                        margin: 0;
+                        padding-top: 0px;
+                        margin-bottom: 800;
                         direction: rtl;
                     }
                     .bill-container {
@@ -3520,7 +3581,7 @@ const Home = () => {
                     
                     <!-- Running Balance Section -->
                     <div class="running-balance">
-                        <div class="running-balance-title">ماہانہ کھاتہ</div>
+        
                         
                         <div class="balance-row">
                             <span class="balance-label">پچھلا بقایا:</span>
@@ -3538,7 +3599,7 @@ const Home = () => {
                         </div>
                         
                         <div class="balance-row">
-                            <span class="balance-label">ادا شدہ رقم:</span>
+                            <span class="balance-label">کل ادائیگی:</span>
                             <span>${totalAdvancePayments}</span>
                         </div>
                         
@@ -3571,16 +3632,16 @@ const Home = () => {
             </body>
             </html>
         `;
-        
+
         // Write content to the print window
         printWindow.document.write(printContent);
         printWindow.document.close();
-        
-        // // Initiate printing
-        // setTimeout(() => {
-        //     printWindow.print();
-        //     printWindow.close();
-        // }, 500);
+
+        // Print after a short delay to ensure content is loaded
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
     };
 
     // Function for printing a multi-month running balance statement
@@ -3588,63 +3649,63 @@ const Home = () => {
         // Get selected customer info
         const customer = selectedCustomerInfo;
         if (!customer) return;
-        
+
         // Ask user which year to print balances for
         let selectedYearStr = prompt("Enter year for running balance statement:", new Date().getFullYear());
-        
+
         // Validate input
         if (selectedYearStr === null) {
             return; // User cancelled
         }
-        
+
         const selectedYear = parseInt(selectedYearStr);
         if (isNaN(selectedYear)) {
             alert("Invalid year entered.");
             return;
         }
-        
+
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
-        
+
         // Calculate data for all months
         const monthsData = [];
         let runningBalance = 0;
         let runningAdvanceTotal = 0;
         const milkRate = customer.customMilkRate || rates.milk;
         const yogurtRate = customer.customYogurtRate || rates.yogurt;
-        
+
         // Process each month
         for (let month = 0; month < 12; month++) {
             // Get monthly purchases for this month
             const monthlyPurchases = filterPurchasesByMonth(customer.id, month, selectedYear);
-            
+
             // Skip months with no activity unless there's a previous balance
             if (monthlyPurchases.length === 0 && runningBalance === 0) continue;
-            
+
             // Calculate this month's totals
             const monthlyTotals = calculateTotals(monthlyPurchases);
             const milkTotal = Math.round(monthlyTotals.milk * milkRate);
             const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
             const thisMonthTotal = milkTotal + yogurtTotal;
-            
+
             // Get payments made during this month
             const startOfMonth = new Date(selectedYear, month, 1);
             const endOfMonth = new Date(selectedYear, month + 1, 0, 23, 59, 59, 999);
-            
+
             const monthPayments = advancePayments.filter(payment => {
                 if (payment.customerId !== customer.id) return false;
                 const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
                 return paymentDate >= startOfMonth && paymentDate <= endOfMonth;
             });
-            
+
             const monthPaymentTotal = monthPayments.reduce((sum, payment) => sum + payment.amount, 0);
             runningAdvanceTotal += monthPaymentTotal;
-            
+
             // Calculate totals
             const previousBalance = runningBalance;
             const totalWithPrevious = thisMonthTotal + previousBalance;
             runningBalance = totalWithPrevious - monthPaymentTotal;
-            
+
             // Store month data
             monthsData.push({
                 month,
@@ -3655,7 +3716,7 @@ const Home = () => {
                 remainingBalance: runningBalance
             });
         }
-        
+
         // Generate the print content for running balance statement
         const printContent = `
             <html>
@@ -3758,11 +3819,11 @@ const Home = () => {
                     </div>
                     
                     ${monthsData.map(data => {
-                        const monthNames = [
-                            "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون", 
-                            "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر"
-                        ];
-                        return `
+            const monthNames = [
+                "جنوری", "فروری", "مارچ", "اپریل", "مئی", "جون",
+                "جولائی", "اگست", "ستمبر", "اکتوبر", "نومبر", "دسمبر"
+            ];
+            return `
                             <div class="month-section">
                                 <div class="month-title">${monthNames[data.month]}</div>
                                 
@@ -3793,18 +3854,18 @@ const Home = () => {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+        }).join('')}
                     
                   
                 </div>
             </body>
             </html>
         `;
-        
+
         // Write content to the print window
         printWindow.document.write(printContent);
         printWindow.document.close();
-        
+
         // // Initiate printing
         // setTimeout(() => {
         //     printWindow.print();
@@ -3827,7 +3888,7 @@ const Home = () => {
             // Password is correct, proceed with deletion
             setShowPasswordVerification(false);
             setPasswordInput('');
-            
+
             // Execute the requested delete action with params
             if (deleteAction) {
                 if (deleteParams) {
@@ -3841,30 +3902,30 @@ const Home = () => {
             setPasswordError('پاس ورڈ غلط ہے');
         }
     };
-    
+
     const closePasswordModal = () => {
         setShowPasswordVerification(false);
         setPasswordInput('');
         setPasswordError('');
     };
-    
+
     // Wrapper functions for delete operations that use password verification
     const handleDeleteSupplier = (supplierId) => {
         requestPasswordForDelete(deleteSupplier, supplierId);
     };
-    
+
     const handleDeleteCustomer = (customerId) => {
         requestPasswordForDelete(deleteCustomer, customerId);
     };
-    
+
     const handleDeleteAdvancePayment = (paymentId) => {
         requestPasswordForDelete(deleteAdvancePayment, paymentId);
     };
-    
+
     const handleClearBills = () => {
         requestPasswordForDelete(clearBills);
     };
-    
+
     const handleClearMonthlyPurchases = () => {
         requestPasswordForDelete(clearMonthlyPurchases);
     };
@@ -3878,11 +3939,11 @@ const Home = () => {
                 // Reset the daily sales to 0
                 setTodaySales(0);
                 setSalesGrowth(0);
-                
+
                 // Reset token number to 0
                 const tokenDoc = doc(firestore, 'settings', 'tokenNumber');
                 await setDoc(tokenDoc, { current: 0 });
-                
+
                 setSuccessMessage('روزانہ کی آمدنی کامیابی سے صاف کر دی گئی ہے');
                 setShowSuccessPopup(true);
             } catch (error) {
@@ -3909,10 +3970,10 @@ const Home = () => {
     // Function to recalculate purchase amounts based on current rates
     const recalculatePurchaseAmount = (purchase) => {
         if (!selectedCustomerInfo) return purchase.total;
-        
+
         const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
         const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
-        
+
         return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
     };
 
@@ -3978,7 +4039,7 @@ const Home = () => {
                                         <span>ایڈوانس پیمنٹس</span>
                                     </button>
                                 </div>
-                            
+
                                 <div className="sidebar-menu-item">
                                     <button
                                         onClick={() => showSection('suppliers')}
@@ -3988,7 +4049,7 @@ const Home = () => {
                                         <span>سپلائرز</span>
                                     </button>
                                 </div>
-                              
+
                                 <div className="sidebar-menu-item">
                                     <button
                                         onClick={() => showSection('quanty')}
@@ -3998,7 +4059,7 @@ const Home = () => {
                                         <span>دودھ اور دہی کی مقدار</span>
                                     </button>
                                 </div>
-                                    <div className="sidebar-menu-item">
+                                <div className="sidebar-menu-item">
                                     <button
                                         onClick={() => showSection('dashboard')}
                                         className={activeSection === 'dashboard' ? 'active' : ''}
@@ -4029,7 +4090,7 @@ const Home = () => {
                                     </div>
                                     <div className="card-body">
                                         <div className="card-value">Rs.{(todaySales !== undefined ? todaySales.toFixed(2) : '0.00')}</div>
-                                        <button 
+                                        <button
                                             onClick={handleClearDailyRevenue}
                                             className="clear-revenue-btn"
                                             disabled={loading}
@@ -4048,7 +4109,7 @@ const Home = () => {
                                         </button>
                                     </div>
                                 </div>
-                                
+
                                 {/* Daily Customers Card */}
                                 <div className="dashboard-card">
                                     <div className="card-header">
@@ -4060,7 +4121,7 @@ const Home = () => {
                                         <div className="card-subtitle">Total customers today</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* New inventory cards */}
                                 <div className="dashboard-card">
                                     <div className="card-header">
@@ -4072,9 +4133,9 @@ const Home = () => {
                                         <div className="card-subtitle">موجودہ انوینٹری</div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="dashboard-card">
-                                    
+
                                     <div className="card-header">
                                         <span className="card-title">دہی کی باقی مقدار</span>
                                         <span className="card-unit">کلو</span>
@@ -4084,7 +4145,7 @@ const Home = () => {
                                         <div className="card-subtitle">موجودہ انوینٹری</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Supplier Summary Card */}
                                 <div className="dashboard-card">
                                     <div className="card-header">
@@ -4096,7 +4157,7 @@ const Home = () => {
                                         <div className="card-subtitle">کل سپلائرز</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Total Supplied Milk */}
                                 <div className="dashboard-card">
                                     <div className="card-header">
@@ -4110,7 +4171,7 @@ const Home = () => {
                                         <div className="card-subtitle">کل سپلائی شدہ دودھ</div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Total Supplied Yogurt */}
                                 <div className="dashboard-card">
                                     <div className="card-header">
@@ -4185,10 +4246,10 @@ const Home = () => {
                     {/* Billing Section */}
                     <section id="billing" className={activeSection === 'billing' ? 'active' : ''}>
                         <h2>نیا بل</h2>
-                        <form onSubmit={handleBillFormSubmit}>  
+                        <form onSubmit={handleBillFormSubmit}>
                             {/* Current entry form */}
                             <div className="entry-form">
-                                
+
                                 <div className="form-group">
                                     <label htmlFor="milkAmount">دودھ کی رقم (روپے):</label>
                                     <input
@@ -4241,11 +4302,11 @@ const Home = () => {
                                         onChange={(e) => {
                                             // Handle normal input change
                                             handleInputChange(e, setBillFormData, billFormData);
-                                            
+
                                             // Calculate and update the amount field
                                             const qty = parseFloat(e.target.value) || 0;
                                             const amount = qty * rates.milk;
-                                            
+
                                             // Update corresponding amount field
                                             document.getElementById('milkAmount').value = amount.toFixed(2);
                                         }}
@@ -4264,21 +4325,21 @@ const Home = () => {
                                         onChange={(e) => {
                                             // Handle normal input change
                                             handleInputChange(e, setBillFormData, billFormData);
-                                            
+
                                             // Calculate and update the amount field
                                             const qty = parseFloat(e.target.value) || 0;
                                             const amount = qty * rates.yogurt;
-                                            
+
                                             // Update corresponding amount field
                                             document.getElementById('yogurtAmount').value = amount.toFixed(2);
                                         }}
                                         disabled={loading}
                                     />
                                 </div>
-                                
+
                                 <div className="action-buttons-row">
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         className="add-entry-btn"
                                         onClick={() => {
                                             // Only add if there's milk or yogurt quantity
@@ -4290,7 +4351,7 @@ const Home = () => {
                                                     milkTotal: (parseFloat(billFormData.milkQty) || 0) * rates.milk,
                                                     yogurtTotal: (parseFloat(billFormData.yogurtQty) || 0) * rates.yogurt
                                                 };
-                                                
+
                                                 // Add the new entry to the entries array
                                                 setBillFormData({
                                                     ...billFormData,
@@ -4298,7 +4359,7 @@ const Home = () => {
                                                     milkQty: 0,
                                                     yogurtQty: 0
                                                 });
-                                                
+
                                                 // Clear the amount input fields
                                                 document.getElementById('milkAmount').value = '';
                                                 document.getElementById('yogurtAmount').value = '';
@@ -4311,14 +4372,14 @@ const Home = () => {
                                         <AddIcon fontSize="small" style={{ marginRight: '5px' }} />
                                         اندراج شامل کریں
                                     </button>
-                                    
+
                                     <button type="submit" disabled={loading} className="bill-submit-btn">
                                         بل بنائیں
                                         {loading && <LoadingSpinner />}
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Entries list */}
                             {billFormData.entries.length > 0 && (
                                 <div className="entries-list">
@@ -4349,8 +4410,8 @@ const Home = () => {
                                                         {(entry.milkTotal + entry.yogurtTotal).toFixed(2)} روپے
                                                     </td>
                                                     <td>
-                                                        <button 
-                                                            type="button" 
+                                                        <button
+                                                            type="button"
                                                             className="delete-entry-btn"
                                                             onClick={() => {
                                                                 // Remove the entry from the array
@@ -4373,7 +4434,7 @@ const Home = () => {
                                                 <td colSpan="2"><strong>کل رقم:</strong></td>
                                                 <td colSpan="2">
                                                     <strong>
-                                                        {billFormData.entries.reduce((total, entry) => 
+                                                        {billFormData.entries.reduce((total, entry) =>
                                                             total + entry.milkTotal + entry.yogurtTotal, 0).toFixed(2)} روپے
                                                     </strong>
                                                 </td>
@@ -4426,7 +4487,7 @@ const Home = () => {
                     {/* Settings Section */}
                     <section id="settings" className={activeSection === 'settings' ? 'active' : ''}>
                         <h2>ریٹ اور انوینٹری کی ترتیبات</h2>
-                        
+
                         {/* Rates Form */}
                         <h3>ریٹ کی ترتیبات</h3>
                         <form onSubmit={handleRatesFormSubmit}>
@@ -4459,11 +4520,11 @@ const Home = () => {
                         </form>
 
                     </section>
- {/* Settings Section */}
+                    {/* Settings Section */}
                     <section id="quanty" className={activeSection === 'quanty' ? 'active' : ''}>
                         <h2> انوینٹری کی ترتیبات</h2>
-                        
-                       
+
+
 
                         {/* Inventory Form */}
                         <h3 style={{ marginTop: '30px' }}>انوینٹری کی ترتیبات</h3>
@@ -4510,7 +4571,7 @@ const Home = () => {
                                 نیا سپلائر شامل کریں
                             </button>
                         </div>
-                        
+
                         <div className="supplier-list">
                             {suppliers.length > 0 ? (
                                 <div className="supplier-table-container">
@@ -4521,7 +4582,7 @@ const Home = () => {
                                                 <th>فون</th>
                                                 <th>دودھ کی مقدار (لیٹر)</th>
                                                 <th>دہی کی مقدار (کلو)</th>
-                                            
+
                                                 <th>آخری اپڈیٹ</th>
                                                 <th>کارروائیاں</th>
                                             </tr>
@@ -4533,7 +4594,7 @@ const Home = () => {
                                                     <td>{supplier.phone || 'N/A'}</td>
                                                     <td>{supplier.milkQuantity || 0}</td>
                                                     <td>{supplier.yogurtQuantity || 0}</td>
-                                                   
+
                                                     <td>{supplier.lastUpdate ? new Date(supplier.lastUpdate.toDate()).toLocaleString() : 'N/A'}</td>
                                                     <td>
                                                         <button
@@ -4559,7 +4620,7 @@ const Home = () => {
                                                 <td colSpan="2"><strong>مجموعی</strong></td>
                                                 <td><strong>{suppliers.reduce((sum, supplier) => sum + (parseFloat(supplier.milkQuantity) || 0), 0).toFixed(1)}</strong></td>
                                                 <td><strong>{suppliers.reduce((sum, supplier) => sum + (parseFloat(supplier.yogurtQuantity) || 0), 0).toFixed(1)}</strong></td>
-                                                
+
                                                 <td colSpan="2"></td>
                                             </tr>
                                         </tfoot>
@@ -4612,7 +4673,7 @@ const Home = () => {
 
                             {/* Right side: Purchase History */}
                             <div className="purchase-history-view">
-                                    {selectedCustomerInfo && (
+                                {selectedCustomerInfo && (
                                     <div className="monthly-summary-container">
                                         <div className="payment-form-container">
                                             <h4>Record Payment</h4>
@@ -4631,8 +4692,8 @@ const Home = () => {
                                                             disabled={paymentProcessing}
                                                             required
                                                         />
-                                                        <button 
-                                                            type="submit" 
+                                                        <button
+                                                            type="submit"
                                                             className="payment-submit-btn"
                                                             disabled={paymentProcessing}
                                                         >
@@ -4642,7 +4703,7 @@ const Home = () => {
                                                 </div>
                                             </form>
                                         </div>
-                                        
+
                                         <div className="monthly-totals-card">
                                             <h4>Total Purchased</h4>
                                             <div className="monthly-totals-grid">
@@ -4681,16 +4742,16 @@ const Home = () => {
                                         </div>
                                     </div>
                                 )}
-                               
+
                                 {selectedCustomerInfo && (
                                     <div className="calendar-view-container">
-                                        <button 
+                                        <button
                                             className="toggle-calendar-btn"
                                             onClick={() => setShowCalendar(!showCalendar)}
                                         >
                                             {showCalendar ? 'Hide Calendar' : 'Show Daily Purchase Calendar'}
                                         </button>
-                                        
+
                                         {showCalendar && (
                                             <div className="calendar-container">
                                                 <Calendar
@@ -4698,7 +4759,7 @@ const Home = () => {
                                                     value={selectedDate}
                                                     tileClassName={tileClassName}
                                                 />
-                                                
+
                                                 {/* Monthly Totals Summary */}
                                                 <div className="monthly-summary" style={{ padding: '15px', marginTop: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
                                                     <h4>Monthly Totals for {new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).toLocaleDateString('default', { month: 'long', year: 'numeric' })}</h4>
@@ -4734,13 +4795,13 @@ const Home = () => {
                                                         gap: '10px',
                                                         marginTop: '15px'
                                                     }}>
-                                                        <button 
+                                                        <button
                                                             onClick={printMonthlyTotals}
                                                             className="print-btn"
                                                             disabled={loading}
-                                                            style={{ 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 padding: '8px 15px',
                                                                 backgroundColor: '#3498db',
@@ -4755,7 +4816,7 @@ const Home = () => {
                                                             <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
                                                             Print Monthly Summary
                                                         </button>
-                                                        
+
                                                         {/* <button 
                                                             onClick={printExactMonthlyBill}
                                                             className="print-btn"
@@ -4777,14 +4838,14 @@ const Home = () => {
                                                             <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
                                                             Print Exact Bill
                                                         </button> */}
-                                                        
-                                                        <button 
+
+                                                        <button
                                                             onClick={printA4MonthlyBill}
                                                             className="print-btn"
                                                             disabled={loading}
-                                                            style={{ 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 padding: '8px 15px',
                                                                 backgroundColor: '#e74c3c',
@@ -4800,14 +4861,14 @@ const Home = () => {
                                                             <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
                                                             Print A4 Bill
                                                         </button>
-                                                        
-                                                        <button 
+
+                                                        <button
                                                             onClick={printMonthlyRunningBalance}
                                                             className="print-btn"
                                                             disabled={loading}
-                                                            style={{ 
-                                                                display: 'flex', 
-                                                                alignItems: 'center', 
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
                                                                 justifyContent: 'center',
                                                                 padding: '8px 15px',
                                                                 backgroundColor: '#3498db',
@@ -4825,7 +4886,7 @@ const Home = () => {
                                                         </button>
                                                     </div>
                                                 </div>
-                                                
+
                                                 {dailyPurchases.length > 0 && (
                                                     <div className="daily-purchases">
                                                         <h4>Daily Purchase Details for {selectedDate.toLocaleDateString()}</h4>
@@ -4859,11 +4920,11 @@ const Home = () => {
                                                         </table>
                                                     </div>
                                                 )}
-                                                
+
                                                 {dailyPurchases.length === 0 && showCalendar && (
                                                     <div className="daily-purchases">
                                                         <p>No purchases found for {selectedDate.toLocaleDateString()}</p>
-                                                        <button 
+                                                        <button
                                                             className="add-purchase-btn"
                                                             onClick={() => showPurchaseModal(selectedCustomer)}
                                                             style={{
@@ -4991,11 +5052,11 @@ const Home = () => {
                                     disabled={loading}
                                 ></textarea>
                             </div>
-                            
-                            <div style={{ 
-                                padding: '15px', 
-                                marginTop: '15px', 
-                                backgroundColor: '#f0f8ff', 
+
+                            <div style={{
+                                padding: '15px',
+                                marginTop: '15px',
+                                backgroundColor: '#f0f8ff',
                                 borderRadius: '5px',
                                 marginBottom: '15px'
                             }}>
@@ -5012,7 +5073,7 @@ const Home = () => {
                                         onChange={(e) => handleInputChange(e, setFormData, formData)}
                                         disabled={loading}
                                     />
-                                   
+
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="customYogurtRate">دہی کا ریٹ (روپے/کلو):</label>
@@ -5026,10 +5087,10 @@ const Home = () => {
                                         onChange={(e) => handleInputChange(e, setFormData, formData)}
                                         disabled={loading}
                                     />
-                                  
+
                                 </div>
                             </div>
-                            
+
                             <button type="submit" disabled={loading} className="button-with-spinner">
                                 {modalMode === 'edit' ? 'گاہک کو اپڈیٹ کریں' : 'گاہک محفوظ کریں'}
                                 {loading && <LoadingSpinner />}
@@ -5049,11 +5110,11 @@ const Home = () => {
                                     <h3>{selectedCustomerInfo.name}</h3>
                                     <p>Phone: {selectedCustomerInfo.phone || 'N/A'}</p>
                                     <p>Address: {selectedCustomerInfo.address || 'N/A'}</p>
-                                    <div style={{ 
-                                        backgroundColor: '#f0f8ff', 
-                                        padding: '10px', 
+                                    <div style={{
+                                        backgroundColor: '#f0f8ff',
+                                        padding: '10px',
                                         borderRadius: '5px',
-                                        marginTop: '10px' 
+                                        marginTop: '10px'
                                     }}>
                                         <h4>Custom Rates</h4>
                                         <p>Milk Rate: Rs. {selectedCustomerInfo.customMilkRate || rates.milk} exactly</p>
@@ -5120,12 +5181,12 @@ const Home = () => {
                                         const qty = parseFloat(e.target.value) || 0;
                                         // Handle normal input change
                                         handleInputChange(e, setPurchaseFormData, purchaseFormData);
-                                        
+
                                         // Calculate milk amount based on quantity
-                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate 
-                                            ? parseFloat(selectedCustomerInfo.customMilkRate) 
+                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate
+                                            ? parseFloat(selectedCustomerInfo.customMilkRate)
                                             : rates.milk;
-                                        
+
                                         // Update corresponding amount field
                                         document.getElementById('milkAmount').value = (qty * milkRate).toFixed(2);
                                     }}
@@ -5145,12 +5206,12 @@ const Home = () => {
                                         const qty = parseFloat(e.target.value) || 0;
                                         // Handle normal input change
                                         handleInputChange(e, setPurchaseFormData, purchaseFormData);
-                                        
+
                                         // Calculate yogurt amount based on quantity
-                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate 
-                                            ? parseFloat(selectedCustomerInfo.customYogurtRate) 
+                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate
+                                            ? parseFloat(selectedCustomerInfo.customYogurtRate)
                                             : rates.yogurt;
-                                            
+
                                         // Update corresponding amount field
                                         document.getElementById('yogurtAmount').value = (qty * yogurtRate).toFixed(2);
                                     }}
@@ -5206,10 +5267,10 @@ const Home = () => {
                         <div className="modal-content w-1/2">
                             <span className="close" onClick={closeSuccessPopup}><CloseIcon /></span>
                             <div className="popup-message" style={{ textAlign: 'center', padding: '20px' }}>
-                                {successMessage.includes("کافی مقدار") || 
-                                 successMessage.includes("خرابی") || 
-                                 successMessage.includes("Failed") || 
-                                 successMessage.includes("Please enter") ? (
+                                {successMessage.includes("کافی مقدار") ||
+                                    successMessage.includes("خرابی") ||
+                                    successMessage.includes("Failed") ||
+                                    successMessage.includes("Please enter") ? (
                                     <>
                                         <CancelIcon style={{ color: '#e63946', fontSize: '48px', marginBottom: '16px' }} />
                                         <h3 style={{ color: '#e63946', marginBottom: '10px' }}>تنبیہ</h3>
@@ -5222,21 +5283,21 @@ const Home = () => {
                                 )}
                                 <p>{successMessage}</p>
                             </div>
-                            <div className="button-container" style={{ 
-                                display: 'flex', 
-                                justifyContent: 'center', 
+                            <div className="button-container" style={{
+                                display: 'flex',
+                                justifyContent: 'center',
                                 marginTop: '20px'
                             }}>
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     onClick={closeSuccessPopup}
                                     style={{
                                         padding: '8px 20px',
                                         borderRadius: '5px',
-                                        backgroundColor: successMessage.includes("کافی مقدار") || 
-                                                       successMessage.includes("خرابی") || 
-                                                       successMessage.includes("Failed") || 
-                                                       successMessage.includes("Please enter") ? '#e63946' : '#2d6a4f',
+                                        backgroundColor: successMessage.includes("کافی مقدار") ||
+                                            successMessage.includes("خرابی") ||
+                                            successMessage.includes("Failed") ||
+                                            successMessage.includes("Please enter") ? '#e63946' : '#2d6a4f',
                                         color: 'white',
                                         border: 'none',
                                         cursor: 'pointer'
@@ -5258,19 +5319,19 @@ const Home = () => {
                                 <LockIcon style={{ color: '#e63946', fontSize: '48px', marginBottom: '16px' }} />
                                 <h3 style={{ marginBottom: '15px' }}>پاس ورڈ کی تصدیق</h3>
                                 <p style={{ marginBottom: '20px' }}>براہ کرم، حذف کرنے کے لیے اپنا پاس ورڈ درج کریں۔</p>
-                                
+
                                 {passwordError && (
-                                    <div style={{ 
-                                        color: '#e63946', 
-                                        backgroundColor: '#ffe3e5', 
-                                        padding: '10px', 
+                                    <div style={{
+                                        color: '#e63946',
+                                        backgroundColor: '#ffe3e5',
+                                        padding: '10px',
                                         borderRadius: '5px',
-                                        marginBottom: '15px' 
+                                        marginBottom: '15px'
                                     }}>
                                         {passwordError}
                                     </div>
                                 )}
-                                
+
                                 <div style={{ marginBottom: '20px' }}>
                                     <input
                                         type="password"
@@ -5287,9 +5348,9 @@ const Home = () => {
                                         }}
                                     />
                                 </div>
-                                
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <button 
+                                    <button
                                         onClick={closePasswordModal}
                                         style={{
                                             padding: '8px 20px',
@@ -5302,7 +5363,7 @@ const Home = () => {
                                     >
                                         منسوخ کریں
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={handlePasswordVerification}
                                         style={{
                                             padding: '8px 20px',
@@ -5339,24 +5400,24 @@ const Home = () => {
                                                 setCustomerSearchForAdvance(e.target.value);
                                                 // Clear selected customer if search field is cleared
                                                 if (!e.target.value) {
-                                                    setAdvanceFormData({...advanceFormData, customerId: ''});
+                                                    setAdvanceFormData({ ...advanceFormData, customerId: '' });
                                                 }
                                             }}
                                             value={customerSearchForAdvance}
                                             disabled={loading}
                                         />
-                                        
+
                                         {/* Filtered customers search results */}
                                         {customerSearchForAdvance && (
                                             <div className="search-results">
                                                 {customers
                                                     .filter(c => c.name.toLowerCase().includes(customerSearchForAdvance.toLowerCase()))
                                                     .map(customer => (
-                                                        <div 
-                                                            key={customer.id} 
+                                                        <div
+                                                            key={customer.id}
                                                             className={`customer-search-result ${advanceFormData.customerId === customer.id ? 'selected' : ''}`}
                                                             onClick={() => {
-                                                                setAdvanceFormData({...advanceFormData, customerId: customer.id});
+                                                                setAdvanceFormData({ ...advanceFormData, customerId: customer.id });
                                                                 setCustomerSearchForAdvance(customer.name);
                                                             }}
                                                         >
@@ -5371,10 +5432,10 @@ const Home = () => {
                                         )}
                                     </div>
                                     {/* Hidden input to store the selected customer ID for form submission */}
-                                    <input 
-                                        type="hidden" 
-                                        name="customerId" 
-                                        value={advanceFormData.customerId} 
+                                    <input
+                                        type="hidden"
+                                        name="customerId"
+                                        value={advanceFormData.customerId}
                                         required
                                     />
                                     {!advanceFormData.customerId && (
@@ -5414,9 +5475,9 @@ const Home = () => {
                                     disabled={loading}
                                 ></textarea>
                             </div>
-                            <button 
-                                type="submit" 
-                                disabled={loading || (!editingAdvancePayment && !advanceFormData.customerId)} 
+                            <button
+                                type="submit"
+                                disabled={loading || (!editingAdvancePayment && !advanceFormData.customerId)}
                                 className="button-with-spinner"
                             >
                                 {editingAdvancePayment ? 'اپڈیٹ کریں' : 'ایڈوانس محفوظ کریں'}
@@ -5593,102 +5654,102 @@ const Home = () => {
             }
         `}</style>
 
-                {/* Supplier Modal */}
-                <div id="supplierModal" className="modal">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h2>{modalMode === 'add' ? 'نیا سپلائر شامل کریں' : 'سپلائر کی معلومات میں ترمیم کریں'}</h2>
-                            <button className="close-btn" onClick={() => closeModal('supplierModal')}>
-                                <CloseIcon />
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <form id="supplierForm">
-                                <div className="form-group">
-                                    <label htmlFor="name">سپلائر کا نام:</label>
-                                    <input
-                                        type="text"
-                                        id="name"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="phone">فون نمبر:</label>
-                                    <input
-                                        type="text"
-                                        id="phone"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        disabled={loading}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="milkQuantity">دودھ کی مقدار (لیٹر):</label>
-                                    <input
-                                        type="number"
-                                        id="milkQuantity"
-                                        name="milkQuantity"
-                                        value={formData.milkQuantity}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        min="0"
-                                        step="0.1"
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="yogurtQuantity">دہی کی مقدار (کلو):</label>
-                                    <input
-                                        type="number"
-                                        id="yogurtQuantity"
-                                        name="yogurtQuantity"
-                                        value={formData.yogurtQuantity}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        min="0"
-                                        step="0.1"
-                                        required
-                                        disabled={loading}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>کل قیمت:</label>
-                                    <p className="calculated-total">
-                                        Rs. {(
-                                            (parseFloat(formData.milkQuantity) || 0) * rates.milk +
-                                            (parseFloat(formData.yogurtQuantity) || 0) * rates.yogurt
-                                        ).toFixed(2)}
-                                    </p>
-                                </div>
-                                <div className="button-group">
-                                    <button
-                                        type="button"
-                                        onClick={modalMode === 'add' ? addSupplier : updateSupplier}
-                                        className="submit-btn button-with-spinner"
-                                        disabled={loading}
-                                    >
-                                        {modalMode === 'add' ? 'سپلائر شامل کریں' : 'سپلائر اپڈیٹ کریں'}
-                                        {loading && <LoadingSpinner />}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => closeModal('supplierModal')}
-                                        className="cancel-btn"
-                                        disabled={loading}
-                                    >
-                                        منسوخ کریں
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+            {/* Supplier Modal */}
+            <div id="supplierModal" className="modal">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h2>{modalMode === 'add' ? 'نیا سپلائر شامل کریں' : 'سپلائر کی معلومات میں ترمیم کریں'}</h2>
+                        <button className="close-btn" onClick={() => closeModal('supplierModal')}>
+                            <CloseIcon />
+                        </button>
+                    </div>
+                    <div className="modal-body">
+                        <form id="supplierForm">
+                            <div className="form-group">
+                                <label htmlFor="name">سپلائر کا نام:</label>
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={(e) => handleInputChange(e, setFormData, formData)}
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="phone">فون نمبر:</label>
+                                <input
+                                    type="text"
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={(e) => handleInputChange(e, setFormData, formData)}
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="milkQuantity">دودھ کی مقدار (لیٹر):</label>
+                                <input
+                                    type="number"
+                                    id="milkQuantity"
+                                    name="milkQuantity"
+                                    value={formData.milkQuantity}
+                                    onChange={(e) => handleInputChange(e, setFormData, formData)}
+                                    min="0"
+                                    step="0.1"
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="yogurtQuantity">دہی کی مقدار (کلو):</label>
+                                <input
+                                    type="number"
+                                    id="yogurtQuantity"
+                                    name="yogurtQuantity"
+                                    value={formData.yogurtQuantity}
+                                    onChange={(e) => handleInputChange(e, setFormData, formData)}
+                                    min="0"
+                                    step="0.1"
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>کل قیمت:</label>
+                                <p className="calculated-total">
+                                    Rs. {(
+                                        (parseFloat(formData.milkQuantity) || 0) * rates.milk +
+                                        (parseFloat(formData.yogurtQuantity) || 0) * rates.yogurt
+                                    ).toFixed(2)}
+                                </p>
+                            </div>
+                            <div className="button-group">
+                                <button
+                                    type="button"
+                                    onClick={modalMode === 'add' ? addSupplier : updateSupplier}
+                                    className="submit-btn button-with-spinner"
+                                    disabled={loading}
+                                >
+                                    {modalMode === 'add' ? 'سپلائر شامل کریں' : 'سپلائر اپڈیٹ کریں'}
+                                    {loading && <LoadingSpinner />}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => closeModal('supplierModal')}
+                                    className="cancel-btn"
+                                    disabled={loading}
+                                >
+                                    منسوخ کریں
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        
+        </div>
+
     );
 };
 
