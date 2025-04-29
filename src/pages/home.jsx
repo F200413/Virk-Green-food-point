@@ -2793,10 +2793,10 @@ const Home = () => {
             // Find all numbers in the name and get the last one
             const aNumbers = a.name.match(/\d+/g);
             const bNumbers = b.name.match(/\d+/g);
-            
+
             const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
             const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
-            
+
             // If both have numbers, compare them numerically
             if (aLastNumber && bLastNumber) {
                 // Remove leading zeros and convert to numbers
@@ -2819,10 +2819,10 @@ const Home = () => {
             // Find all numbers in the name and get the last one
             const aNumbers = a.name.match(/\d+/g);
             const bNumbers = b.name.match(/\d+/g);
-            
+
             const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
             const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
-            
+
             // If both have numbers, compare them numerically
             if (aLastNumber && bLastNumber) {
                 // Remove leading zeros and convert to numbers
@@ -3443,7 +3443,7 @@ const Home = () => {
                         font-family: Arial, sans-serif;
                         padding: 215px;
                         padding-top: 0px;
-                        margin-bottom: 600;
+                        margin-bottom: 800;
                         direction: rtl;
                     }
                     .bill-container {
@@ -3581,7 +3581,7 @@ const Home = () => {
                     
                     <!-- Running Balance Section -->
                     <div class="running-balance">
-                        <div class="running-balance-title">ماہانہ کھاتہ</div>
+        
                         
                         <div class="balance-row">
                             <span class="balance-label">پچھلا بقایا:</span>
@@ -3603,18 +3603,14 @@ const Home = () => {
                             <span>${totalAdvancePayments}</span>
                         </div>
                         
-                        <div class="balance-row" style="border-top: 2px solid black; margin-top: 10px; padding-top: 10px;">
-                            <span class="balance-label">باقی بقایا:</span>
-                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)} ${isCredit ? '(Credit)' : '(Due)'}</span>
+                        <div class="balance-row" style="border-bottom: none; font-weight: bold; margin-top: 5px;">
+                            <span class="balance-label">باقی رقم:</span>
+                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)}</span>
                         </div>
                     </div>
                     
                     <div class="footer">
-                        <p>شکریہ!</p>
-                        <div class="contact">
-                            <p>رابطہ کریں: 0300-1234567</p>
-                            <p>پتہ: ورک گرین فوڈ پوائنٹ</p>
-                        </div>
+                        درخواست ہے کہ 10 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
                     </div>
                     
                     <!-- Payment Methods Section -->
