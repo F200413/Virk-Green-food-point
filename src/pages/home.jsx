@@ -2204,7 +2204,7 @@ const Home = () => {
                         font-size: 18px;
                         margin: 10px 0;
                     }
-                    .divider {
+                    .divider {e
                         border-top: 1px dashed #000;
                         margin: 10px 0;
                     }
@@ -2783,15 +2783,59 @@ const Home = () => {
     };
 
     // Filter functions
-    const filteredCustomers = customers.filter(customer =>
-        customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(customerSearchTerm)) ||
-        (customer.address && customer.address.toLowerCase().includes(customerSearchTerm))
-    );
+    const filteredCustomers = customers
+        .filter(customer =>
+            customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+            (customer.phone && customer.phone.includes(customerSearchTerm)) ||
+            (customer.address && customer.address.toLowerCase().includes(customerSearchTerm))
+        )
+        .sort((a, b) => {
+            // Find all numbers in the name and get the last one
+            const aNumbers = a.name.match(/\d+/g);
+            const bNumbers = b.name.match(/\d+/g);
+            
+            const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
+            const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
+            
+            // If both have numbers, compare them numerically
+            if (aLastNumber && bLastNumber) {
+                // Remove leading zeros and convert to numbers
+                const aNum = parseInt(aLastNumber.replace(/^0+/, ''), 10) || 0;
+                const bNum = parseInt(bLastNumber.replace(/^0+/, ''), 10) || 0;
+                return aNum - bNum;
+            }
+            // If only one has a number, prioritize it
+            if (aLastNumber) return -1;
+            if (bLastNumber) return 1;
+            // If neither has a number, sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
 
-    const filteredCustomersList = customers.filter(customer =>
-        customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
-    );
+    const filteredCustomersList = customers
+        .filter(customer =>
+            customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Extract the leading number from the start of the name
+            const aMatch = a.name.match(/^(\d+)/);
+            const bMatch = b.name.match(/^(\d+)/);
+            
+            // Get the numeric values if they exist
+            const aNum = aMatch ? parseInt(aMatch[1], 10) : null;
+            const bNum = bMatch ? parseInt(bMatch[1], 10) : null;
+            
+            // If both names start with numbers, compare them numerically
+            if (aNum !== null && bNum !== null) {
+                return aNum - bNum;
+            }
+            
+            // If only one starts with a number, prioritize it
+            if (aNum !== null) return -1;
+            if (bNum !== null) return 1;
+            
+            // If neither starts with a number, sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
 
     // Improve the filterPurchasesByDate function for better date handling
     const filterPurchasesByDate = (date) => {
@@ -3146,7 +3190,23 @@ const Home = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            setSuppliers(suppliersList);
+
+            // Sort suppliers based on their index numbers
+            const sortedSuppliers = suppliersList.sort((a, b) => {
+                // Extract index numbers from supplier names
+                const getIndex = (name) => {
+                    const match = name.match(/^(\d+)/);
+                    return match ? parseInt(match[1]) : 0;
+                };
+
+                const indexA = getIndex(a.name);
+                const indexB = getIndex(b.name);
+
+                // Sort in descending order (higher index first)
+                return indexB - indexA;
+            });
+
+            setSuppliers(sortedSuppliers);
         } catch (error) {
             console.error("Error fetching suppliers: ", error);
         } finally {
@@ -3539,18 +3599,22 @@ const Home = () => {
                         </div>
                         
                         <div class="balance-row">
-                            <span class="balance-label">ادا شدہ رقم:</span>
+                            <span class="balance-label">کل ادائیگی:</span>
                             <span>${totalAdvancePayments}</span>
                         </div>
                         
-                        <div class="balance-row" style="border-bottom: none; font-weight: bold; margin-top: 5px;">
-                            <span class="balance-label">باقی رقم:</span>
-                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)}</span>
+                        <div class="balance-row" style="border-top: 2px solid black; margin-top: 10px; padding-top: 10px;">
+                            <span class="balance-label">باقی بقایا:</span>
+                            <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)} ${isCredit ? '(Credit)' : '(Due)'}</span>
                         </div>
                     </div>
                     
                     <div class="footer">
-                        درخواست ہے کہ 7 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
+                        <p>شکریہ!</p>
+                        <div class="contact">
+                            <p>رابطہ کریں: 0300-1234567</p>
+                            <p>پتہ: ورک گرین فوڈ پوائنٹ</p>
+                        </div>
                     </div>
                     
                     <!-- Payment Methods Section -->
@@ -3577,11 +3641,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // // Initiate printing
-        // setTimeout(() => {
-        //     printWindow.print();
-        //     printWindow.close();
-        // }, 500);
+        // Print after a short delay to ensure content is loaded
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
     };
 
     // Function for printing a multi-month running balance statement
