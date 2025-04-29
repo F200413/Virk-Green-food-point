@@ -2816,24 +2816,24 @@ const Home = () => {
             customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
         )
         .sort((a, b) => {
-            // Extract the leading number from the start of the name
-            const aMatch = a.name.match(/^(\d+)/);
-            const bMatch = b.name.match(/^(\d+)/);
+            // Find all numbers in the name and get the last one
+            const aNumbers = a.name.match(/\d+/g);
+            const bNumbers = b.name.match(/\d+/g);
             
-            // Get the numeric values if they exist
-            const aNum = aMatch ? parseInt(aMatch[1], 10) : null;
-            const bNum = bMatch ? parseInt(bMatch[1], 10) : null;
+            const aLastNumber = aNumbers ? aNumbers[aNumbers.length - 1] : null;
+            const bLastNumber = bNumbers ? bNumbers[bNumbers.length - 1] : null;
             
-            // If both names start with numbers, compare them numerically
-            if (aNum !== null && bNum !== null) {
+            // If both have numbers, compare them numerically
+            if (aLastNumber && bLastNumber) {
+                // Remove leading zeros and convert to numbers
+                const aNum = parseInt(aLastNumber.replace(/^0+/, ''), 10) || 0;
+                const bNum = parseInt(bLastNumber.replace(/^0+/, ''), 10) || 0;
                 return aNum - bNum;
             }
-            
-            // If only one starts with a number, prioritize it
-            if (aNum !== null) return -1;
-            if (bNum !== null) return 1;
-            
-            // If neither starts with a number, sort alphabetically
+            // If only one has a number, prioritize it
+            if (aLastNumber) return -1;
+            if (bLastNumber) return 1;
+            // If neither has a number, sort alphabetically
             return a.name.localeCompare(b.name);
         });
 
