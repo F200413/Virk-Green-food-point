@@ -1131,11 +1131,22 @@ const Home = () => {
             const purchasesCollection = collection(firestore, 'purchases');
             const q = query(purchasesCollection, orderBy('date', 'desc'));
             const purchasesSnapshot = await getDocs(q);
-            const purchasesList = purchasesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                date: doc.data().date.toDate().toISOString()
-            }));
+            const purchasesList = purchasesSnapshot.docs.map(doc => {
+                const rawDate = doc.data().date;
+                let date;
+                if (rawDate && typeof rawDate.toDate === 'function') {
+                    date = rawDate.toDate().toISOString();
+                } else if (rawDate) {
+                    date = new Date(rawDate).toISOString();
+                } else {
+                    date = null;
+                }
+                return {
+                    id: doc.id,
+                    ...doc.data(),
+                    date
+                };
+            });
             setPurchases(purchasesList);
         } catch (error) {
             console.error("Error fetching purchases: ", error);
