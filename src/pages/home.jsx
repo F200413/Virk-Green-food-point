@@ -31,7 +31,11 @@ const Home = () => {
     });
     const [customers, setCustomers] = useState([]);
     const [purchases, setPurchases] = useState([]);
-    const [rates, setRates] = useState({ milk: 120, yogurt: 140 });
+    const [rates, setRates] = useState({ 
+        milk: 120, 
+        yogurt: 140,
+        monthlyRates: {} // Store monthly rates for each customer
+    });
     const [bills, setBills] = useState([]);
     const [advancePayments, setAdvancePayments] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -85,6 +89,15 @@ const Home = () => {
     const [passwordError, setPasswordError] = useState('');
     const [deleteAction, setDeleteAction] = useState(null);
     const [deleteParams, setDeleteParams] = useState(null);
+
+    // Add this after the existing state declarations
+    const [monthlyRateForm, setMonthlyRateForm] = useState({
+        customerId: '',
+        month: new Date().getMonth(),
+        year: new Date().getFullYear(),
+        milkRate: 0,
+        yogurtRate: 0
+    });
 
     // Helper function to round numbers
     const roundNumber = (num) => {
@@ -1661,7 +1674,13 @@ const Home = () => {
             setLoading(false);
         }
     };
-
+    // Add this function to get rates for a specific month
+    const getMonthlyRates = (customerId, month, year) => {
+        const key = `${customerId}_${year}_${month}`;
+        // Ensure rates.monthlyRates is always an object
+        if (!rates.monthlyRates) return null;
+        return rates.monthlyRates[key] || null;
+    };
     const deleteAdvancePayment = async (paymentId) => {
         if (!paymentId) return;
 
@@ -2257,6 +2276,7 @@ const Home = () => {
                     
                     <div class="totals-grid">
                         <div class="total-item">
+              
                             <div class="total-label">دودھ (Milk):</div>
                             <div class="total-value">${monthlyTotals.milk.toFixed(1)} لیٹر</div>
                         </div>
@@ -2878,11 +2898,33 @@ const Home = () => {
     const selectedCustomerAdvanceTotal = selectedCustomer ? getCustomerAdvanceTotal(selectedCustomer) : 0;
 
     const calculateTotals = (purchasesList) => {
-        return purchasesList.reduce((acc, curr) => ({
-            milk: acc.milk + (parseFloat(curr.milk) || 0),
-            yogurt: acc.yogurt + (parseFloat(curr.yogurt) || 0),
-            amount: acc.amount + (parseFloat(curr.total) || 0)
-        }), { milk: 0, yogurt: 0, amount: 0 });
+        const totals = purchasesList.reduce((acc, purchase) => {
+            const purchaseDate = new Date(purchase.date);
+            const month = purchaseDate.getMonth();
+            const year = purchaseDate.getFullYear();
+            
+            // Try to get monthly rates first
+            const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
+            
+            // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
+            const milkRate = monthlyRates ? monthlyRates.milkRate : 
+                (purchase.customMilkRate || rates.milk);
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+                (purchase.customYogurtRate || rates.yogurt);
+            
+            const milkAmount = (parseFloat(purchase.milk) || 0) * milkRate;
+            const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+            
+            return {
+                milk: acc.milk + (parseFloat(purchase.milk) || 0),
+                yogurt: acc.yogurt + (parseFloat(purchase.yogurt) || 0),
+                amount: acc.amount + milkAmount + yogurtAmount,
+                milkRate: milkRate,
+                yogurtRate: yogurtRate
+            };
+        }, { milk: 0, yogurt: 0, amount: 0, milkRate: 0, yogurtRate: 0 });
+        
+        return totals;
     };
 
     // New function to filter purchases by month and year
@@ -2940,16 +2982,7 @@ const Home = () => {
 
     const selectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
     const selectedCustomerInfo = selectedCustomer ? customers.find(c => c.id === selectedCustomer) : null;
-    // Calculate the total amount with custom rates if available
-    let customSelectedCustomerTotals = { ...selectedCustomerTotals };
-    if (selectedCustomerInfo) {
-        const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
-        const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
-
-        // If the customer has custom rates, recalculate the total amount
-        const calculatedAmount = (selectedCustomerTotals.milk * milkRate) + (selectedCustomerTotals.yogurt * yogurtRate);
-        customSelectedCustomerTotals.amount = calculatedAmount;
-    }
+    const customSelectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
     const selectedCustomerBalance = customSelectedCustomerTotals.amount - selectedCustomerAdvanceTotal;
 
     // Event handlers
@@ -3245,12 +3278,18 @@ const Home = () => {
             const monthlyPurchases = filterPurchasesByMonth(selectedCustomer, currentMonth, currentYear);
             const totals = calculateTotals(monthlyPurchases);
 
-            // If there's a selected customer, also calculate the amount using custom rates
+            // If there's a selected customer, get the monthly rates
             if (selectedCustomerInfo) {
-                const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
-                const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
+                // Try to get monthly rates first
+                const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
+                
+                // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
+                const milkRate = monthlyRates ? monthlyRates.milkRate : 
+                    (selectedCustomerInfo.customMilkRate || rates.milk);
+                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+                    (selectedCustomerInfo.customYogurtRate || rates.yogurt);
 
-                // Calculate the total amount using the custom rates
+                // Calculate the total amount using the rates
                 const calculatedAmount = (totals.milk * milkRate) + (totals.yogurt * yogurtRate);
 
                 // Return an updated totals object with the calculated amount
@@ -3980,12 +4019,72 @@ const Home = () => {
 
     // Function to recalculate purchase amounts based on current rates
     const recalculatePurchaseAmount = (purchase) => {
-        if (!selectedCustomerInfo) return purchase.total;
-
-        const milkRate = selectedCustomerInfo.customMilkRate || rates.milk;
-        const yogurtRate = selectedCustomerInfo.customYogurtRate || rates.yogurt;
-
+        const purchaseDate = new Date(purchase.date);
+        const month = purchaseDate.getMonth();
+        const year = purchaseDate.getFullYear();
+        
+        // Try to get monthly rates first
+        const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
+        
+        // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
+        const milkRate = monthlyRates ? monthlyRates.milkRate : 
+            (purchase.customMilkRate || rates.milk);
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+            (purchase.customYogurtRate || rates.yogurt);
+        
         return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
+    };
+
+
+
+    // Add this function to show the monthly rates modal
+    const showMonthlyRatesModal = (customerId) => {
+        const currentDate = new Date();
+        setMonthlyRateForm({
+            customerId,
+            month: currentDate.getMonth(),
+            year: currentDate.getFullYear(),
+            milkRate: rates.milk,
+            yogurtRate: rates.yogurt
+        });
+        const modal = document.getElementById('monthlyRatesModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    };
+
+    // Add this function to handle monthly rate form submission
+    const handleMonthlyRateFormSubmit = (e) => {
+        e.preventDefault();
+        updateMonthlyRates();
+    };
+
+    // Add this function to update monthly rates
+    const updateMonthlyRates = async () => {
+        setLoading(true);
+        try {
+            const ratesDoc = doc(firestore, 'settings', 'rates');
+            const key = `${monthlyRateForm.customerId}_${monthlyRateForm.year}_${monthlyRateForm.month}`;
+            const updatedRates = {
+                ...rates,
+                monthlyRates: {
+                    ...rates.monthlyRates,
+                    [key]: {
+                        milkRate: parseFloat(monthlyRateForm.milkRate),
+                        yogurtRate: parseFloat(monthlyRateForm.yogurtRate)
+                    }
+                }
+            };
+            await setDoc(ratesDoc, updatedRates);
+            setRates(updatedRates);
+            closeModal('monthlyRatesModal');
+            setSuccessMessage('مہینہ وار ریٹس کامیابی سے اپڈیٹ ہوگئے');
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error updating monthly rates: ", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -4247,6 +4346,14 @@ const Home = () => {
                                         >
                                             <DeleteIcon fontSize="small" />
                                             <span>Delete</span>
+                                        </button>
+                                        {/* Add this inside the customer list item actions */}
+                                        <button
+                                            className="action-btn"
+                                            onClick={() => showMonthlyRatesModal(customer.id)}
+                                            title="مہینہ وار ریٹس"
+                                        >
+                                            <CalendarMonthIcon />
                                         </button>
                                     </div>
                                 </div>
@@ -4726,14 +4833,7 @@ const Home = () => {
                                                     <span className="total-label">دہی (Yogurt):</span>
                                                     <span className="total-value">{(selectedCustomerTotals.yogurt !== undefined ? selectedCustomerTotals.yogurt.toFixed(1) : '0.0')} کلو</span>
                                                 </div>
-                                                <div className="total-item">
-                                                    <span className="total-label">Milk Rate:</span>
-                                                    <span className="total-value">Rs. {selectedCustomerInfo ? (selectedCustomerInfo.customMilkRate || rates.milk).toFixed(2) : rates.milk.toFixed(2)}</span>
-                                                </div>
-                                                <div className="total-item">
-                                                    <span className="total-label">Yogurt Rate:</span>
-                                                    <span className="total-value">Rs. {selectedCustomerInfo ? (selectedCustomerInfo.customYogurtRate || rates.yogurt).toFixed(2) : rates.yogurt.toFixed(2)}</span>
-                                                </div>
+                                               
                                                 <div className="total-item total-amount" style={{ gridColumn: 'span 2', borderTop: '1px dashed #ddd', paddingTop: '10px', marginTop: '5px' }}>
                                                     <span className="total-label">Total Amount:</span>
                                                     <span className="total-value">Rs. {(customSelectedCustomerTotals.amount !== undefined ? customSelectedCustomerTotals.amount.toFixed(2) : '0.00')}</span>
@@ -5115,25 +5215,7 @@ const Home = () => {
                     <div className="modal-content">
                         <span className="close" onClick={() => !loading && closeModal('purchaseModal')}>&times;</span>
                         <h3>نئی خریداری</h3>
-                        <div id="customerInfo" className="customer-info">
-                            {selectedCustomerInfo && (
-                                <>
-                                    <h3>{selectedCustomerInfo.name}</h3>
-                                    <p>Phone: {selectedCustomerInfo.phone || 'N/A'}</p>
-                                    <p>Address: {selectedCustomerInfo.address || 'N/A'}</p>
-                                    <div style={{
-                                        backgroundColor: '#f0f8ff',
-                                        padding: '10px',
-                                        borderRadius: '5px',
-                                        marginTop: '10px'
-                                    }}>
-                                        <h4>Custom Rates</h4>
-                                        <p>Milk Rate: Rs. {selectedCustomerInfo.customMilkRate || rates.milk} exactly</p>
-                                        <p>Yogurt Rate: Rs. {selectedCustomerInfo.customYogurtRate || rates.yogurt} exactly</p>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                       
 
                         <form id="purchaseForm" onSubmit={handlePurchaseFormSubmit}>
                             {/* New fields for amount-based calculation */}
@@ -5153,9 +5235,9 @@ const Home = () => {
                                     }}
                                     disabled={loading}
                                 />
-                                <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                {/* <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
                                     Rate: Rs. {rates.milk} exactly
-                                </small>
+                                </small> */}
                             </div>
                             <div className="form-group">
                                 <label htmlFor="yogurtAmount">دہی کی رقم (روپے):</label>
@@ -5173,9 +5255,9 @@ const Home = () => {
                                     }}
                                     disabled={loading}
                                 />
-                                <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                                {/* <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
                                     Rate: Rs. {rates.yogurt} exactly
-                                </small>
+                                </small> */}
                             </div>
 
                             {/* Original quantity fields with automatic price calculation */}
@@ -5757,6 +5839,209 @@ const Home = () => {
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+
+            {/* Monthly Rates Modal */}
+            <div id="monthlyRatesModal" className="modal" style={{
+                display: 'none',
+                position: 'fixed',
+                zIndex: 1000,
+                left: 0,
+                top: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div className="modal-content" style={{
+                    backgroundColor: '#fff',
+                    margin: '4% auto',
+                    padding: '2.5rem 2rem',
+                    borderRadius: '16px',
+                    width: '95%',
+                    maxWidth: '420px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1.5rem',
+                }}>
+                    <span className="close" onClick={() => closeModal('monthlyRatesModal')} style={{
+                        position: 'absolute',
+                        right: '1.5rem',
+                        top: '1.2rem',
+                        fontSize: '2rem',
+                        fontWeight: 'bold',
+                        color: '#333',
+                        cursor: 'pointer',
+                        background: '#f2f2f2',
+                        borderRadius: '50%',
+                        width: '36px',
+                        height: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #e0e0e0',
+                        transition: 'background 0.2s, color 0.2s',
+                    }}>&times;</span>
+                    <h2 style={{
+                        color: '#1b4332',
+                        marginBottom: '0.5rem',
+                        textAlign: 'center',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.5px',
+                    }}>{modalMode === 'add' ? 'نیا مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس میں ترمیم کریں'}</h2>
+                    <form id="monthlyRatesForm" onSubmit={handleMonthlyRateFormSubmit} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1.2rem',
+                    }}>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="customerId" style={{ fontWeight: 500, color: '#333' }}>گاہک:</label>
+                            <select
+                                id="customerId"
+                                name="customerId"
+                                value={monthlyRateForm.customerId}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, customerId: e.target.value })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {customers.map(customer => (
+                                    <option key={customer.id} value={customer.id}>{customer.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="month" style={{ fontWeight: 500, color: '#333' }}>ماہ:</label>
+                            <select
+                                id="month"
+                                name="month"
+                                value={monthlyRateForm.month}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, month: parseInt(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {Array.from({ length: 12 }, (_, i) => i).map(month => (
+                                    <option key={month} value={month}>{new Date(0, month).toLocaleString('default', { month: 'long' })}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="year" style={{ fontWeight: 500, color: '#333' }}>سال:</label>
+                            <select
+                                id="year"
+                                name="year"
+                                value={monthlyRateForm.year}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, year: parseInt(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {Array.from({ length: 10 }, (_, i) => i + new Date().getFullYear() - 5).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="milkRate" style={{ fontWeight: 500, color: '#333' }}>دودھ کی ریٹ (روپے/لیٹر):</label>
+                            <input
+                                type="number"
+                                id="milkRate"
+                                name="milkRate"
+                                value={monthlyRateForm.milkRate}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, milkRate: parseFloat(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            />
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="yogurtRate" style={{ fontWeight: 500, color: '#333' }}>دہی کی ریٹ (روپے/کلو):</label>
+                            <input
+                                type="number"
+                                id="yogurtRate"
+                                name="yogurtRate"
+                                value={monthlyRateForm.yogurtRate}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, yogurtRate: parseFloat(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.7rem', marginTop: '0.5rem' }}>
+                            <button
+                                type="submit"
+                                className="submit-btn button-with-spinner"
+                                disabled={loading}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#218838',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '0.9rem 0',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                            >
+                                {modalMode === 'add' ? 'مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس اپڈیٹ کریں'}
+                                {loading && <LoadingSpinner />}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => closeModal('monthlyRatesModal')}
+                                className="cancel-btn"
+                                disabled={loading}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#f8f9fa',
+                                    color: '#333',
+                                    border: '1px solid #ced4da',
+                                    borderRadius: '8px',
+                                    padding: '0.9rem 0',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                            >
+                                منسوخ کریں
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
