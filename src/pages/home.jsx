@@ -5843,106 +5843,205 @@ const Home = () => {
             </div>
 
             {/* Monthly Rates Modal */}
-            <div id="monthlyRatesModal" className="modal">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h2>{modalMode === 'add' ? 'نیا مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس میں ترمیم کریں'}</h2>
-                        <button className="close-btn" onClick={() => closeModal('monthlyRatesModal')}>
-                            <CloseIcon />
-                        </button>
-                    </div>
-                    <div className="modal-body">
-                        <form id="monthlyRatesForm" onSubmit={handleMonthlyRateFormSubmit}>
-                            <div className="form-group">
-                                <label htmlFor="customerId">گاہک:</label>
-                                <select
-                                    id="customerId"
-                                    name="customerId"
-                                    value={monthlyRateForm.customerId}
-                                    onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, customerId: e.target.value })}
-                                    disabled={loading}
-                                >
-                                    {customers.map(customer => (
-                                        <option key={customer.id} value={customer.id}>
-                                            {customer.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="month">ماہ:</label>
-                                <select
-                                    id="month"
-                                    name="month"
-                                    value={monthlyRateForm.month}
-                                    onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, month: parseInt(e.target.value) })}
-                                    disabled={loading}
-                                >
-                                    {Array.from({ length: 12 }, (_, i) => i).map(month => (
-                                        <option key={month} value={month}>
-                                            {new Date(0, month).toLocaleString('default', { month: 'long' })}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="year">سال:</label>
-                                <select
-                                    id="year"
-                                    name="year"
-                                    value={monthlyRateForm.year}
-                                    onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, year: parseInt(e.target.value) })}
-                                    disabled={loading}
-                                >
-                                    {Array.from({ length: 10 }, (_, i) => i + new Date().getFullYear() - 5).map(year => (
-                                        <option key={year} value={year}>
-                                            {year}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="milkRate">دودھ کی ریٹ (روپے/لیٹر):</label>
-                                <input
-                                    type="number"
-                                    id="milkRate"
-                                    name="milkRate"
-                                    value={monthlyRateForm.milkRate}
-                                    onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, milkRate: parseFloat(e.target.value) })}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="yogurtRate">دہی کی ریٹ (روپے/کلو):</label>
-                                <input
-                                    type="number"
-                                    id="yogurtRate"
-                                    name="yogurtRate"
-                                    value={monthlyRateForm.yogurtRate}
-                                    onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, yogurtRate: parseFloat(e.target.value) })}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="button-group">
-                                <button
-                                    type="submit"
-                                    className="submit-btn button-with-spinner"
-                                    disabled={loading}
-                                >
-                                    {modalMode === 'add' ? 'مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس اپڈیٹ کریں'}
-                                    {loading && <LoadingSpinner />}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => closeModal('monthlyRatesModal')}
-                                    className="cancel-btn"
-                                    disabled={loading}
-                                >
-                                    منسوخ کریں
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+            <div id="monthlyRatesModal" className="modal" style={{
+                display: 'none',
+                position: 'fixed',
+                zIndex: 1000,
+                left: 0,
+                top: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}>
+                <div className="modal-content" style={{
+                    backgroundColor: '#fff',
+                    margin: '4% auto',
+                    padding: '2.5rem 2rem',
+                    borderRadius: '16px',
+                    width: '95%',
+                    maxWidth: '420px',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1.5rem',
+                }}>
+                    <span className="close" onClick={() => closeModal('monthlyRatesModal')} style={{
+                        position: 'absolute',
+                        right: '1.5rem',
+                        top: '1.2rem',
+                        fontSize: '2rem',
+                        fontWeight: 'bold',
+                        color: '#333',
+                        cursor: 'pointer',
+                        background: '#f2f2f2',
+                        borderRadius: '50%',
+                        width: '36px',
+                        height: '36px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #e0e0e0',
+                        transition: 'background 0.2s, color 0.2s',
+                    }}>&times;</span>
+                    <h2 style={{
+                        color: '#1b4332',
+                        marginBottom: '0.5rem',
+                        textAlign: 'center',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.5px',
+                    }}>{modalMode === 'add' ? 'نیا مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس میں ترمیم کریں'}</h2>
+                    <form id="monthlyRatesForm" onSubmit={handleMonthlyRateFormSubmit} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1.2rem',
+                    }}>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="customerId" style={{ fontWeight: 500, color: '#333' }}>گاہک:</label>
+                            <select
+                                id="customerId"
+                                name="customerId"
+                                value={monthlyRateForm.customerId}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, customerId: e.target.value })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {customers.map(customer => (
+                                    <option key={customer.id} value={customer.id}>{customer.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="month" style={{ fontWeight: 500, color: '#333' }}>ماہ:</label>
+                            <select
+                                id="month"
+                                name="month"
+                                value={monthlyRateForm.month}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, month: parseInt(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {Array.from({ length: 12 }, (_, i) => i).map(month => (
+                                    <option key={month} value={month}>{new Date(0, month).toLocaleString('default', { month: 'long' })}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="year" style={{ fontWeight: 500, color: '#333' }}>سال:</label>
+                            <select
+                                id="year"
+                                name="year"
+                                value={monthlyRateForm.year}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, year: parseInt(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            >
+                                {Array.from({ length: 10 }, (_, i) => i + new Date().getFullYear() - 5).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="milkRate" style={{ fontWeight: 500, color: '#333' }}>دودھ کی ریٹ (روپے/لیٹر):</label>
+                            <input
+                                type="number"
+                                id="milkRate"
+                                name="milkRate"
+                                value={monthlyRateForm.milkRate}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, milkRate: parseFloat(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            />
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <label htmlFor="yogurtRate" style={{ fontWeight: 500, color: '#333' }}>دہی کی ریٹ (روپے/کلو):</label>
+                            <input
+                                type="number"
+                                id="yogurtRate"
+                                name="yogurtRate"
+                                value={monthlyRateForm.yogurtRate}
+                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, yogurtRate: parseFloat(e.target.value) })}
+                                disabled={loading}
+                                style={{
+                                    padding: '0.7rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ced4da',
+                                    fontSize: '1rem',
+                                    background: '#f8f9fa',
+                                }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.7rem', marginTop: '0.5rem' }}>
+                            <button
+                                type="submit"
+                                className="submit-btn button-with-spinner"
+                                disabled={loading}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#218838',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '0.9rem 0',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                            >
+                                {modalMode === 'add' ? 'مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس اپڈیٹ کریں'}
+                                {loading && <LoadingSpinner />}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => closeModal('monthlyRatesModal')}
+                                className="cancel-btn"
+                                disabled={loading}
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: '#f8f9fa',
+                                    color: '#333',
+                                    border: '1px solid #ced4da',
+                                    borderRadius: '8px',
+                                    padding: '0.9rem 0',
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                }}
+                            >
+                                منسوخ کریں
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
