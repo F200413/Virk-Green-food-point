@@ -21,6 +21,7 @@ import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CancelIcon from '@mui/icons-material/Cancel';
 import LockIcon from '@mui/icons-material/Lock';
 import easypaisa from '../assets/easy.jpg';
+import allied from '../assets/allied.jpg';
 // Create a placeholder for JazzCash if you don't have an image
 const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
@@ -31,8 +32,8 @@ const Home = () => {
     });
     const [customers, setCustomers] = useState([]);
     const [purchases, setPurchases] = useState([]);
-    const [rates, setRates] = useState({ 
-        milk: 120, 
+    const [rates, setRates] = useState({
+        milk: 120,
         yogurt: 140,
         monthlyRates: {} // Store monthly rates for each customer
     });
@@ -2902,19 +2903,19 @@ const Home = () => {
             const purchaseDate = new Date(purchase.date);
             const month = purchaseDate.getMonth();
             const year = purchaseDate.getFullYear();
-            
+
             // Try to get monthly rates first
             const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
-            
+
             // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-            const milkRate = monthlyRates ? monthlyRates.milkRate : 
+            const milkRate = monthlyRates ? monthlyRates.milkRate :
                 (purchase.customMilkRate || rates.milk);
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
                 (purchase.customYogurtRate || rates.yogurt);
-            
+
             const milkAmount = (parseFloat(purchase.milk) || 0) * milkRate;
             const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * yogurtRate;
-            
+
             return {
                 milk: acc.milk + (parseFloat(purchase.milk) || 0),
                 yogurt: acc.yogurt + (parseFloat(purchase.yogurt) || 0),
@@ -2923,7 +2924,7 @@ const Home = () => {
                 yogurtRate: yogurtRate
             };
         }, { milk: 0, yogurt: 0, amount: 0, milkRate: 0, yogurtRate: 0 });
-        
+
         return totals;
     };
 
@@ -2945,39 +2946,38 @@ const Home = () => {
     // Add this function after the filterPurchasesByMonth function
     const getAllPreviousMonthsBalance = (customerId) => {
         if (!customerId) return 0;
-
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth();
-        const currentYear = currentDate.getFullYear();
-
-        // Calculate total balance for all previous months of the current year
-        let totalPreviousBalance = 0;
-
-        // Loop through all previous months of the current year
-        for (let month = 0; month < currentMonth; month++) {
-            // Get previous month's purchases
-            const prevMonthPurchases = filterPurchasesByMonth(customerId, month, currentYear);
-            if (prevMonthPurchases.length === 0) continue;
-
-            // Calculate previous month's totals
-            const prevMonthTotals = calculateTotals(prevMonthPurchases);
-
-            // Get all advance payments up to the end of previous month
-            const endOfPrevMonth = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
-            const relevantAdvancePayments = advancePayments.filter(payment => {
-                if (payment.customerId !== customerId) return false;
-                const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
-                return paymentDate <= endOfPrevMonth;
-            });
-
-            // Calculate total advances for the month
-            const monthAdvance = relevantAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
-
-            // Add month's balance to total
-            totalPreviousBalance += (prevMonthTotals.amount - monthAdvance);
+    
+        const customer = customers.find(c => c.id === customerId);
+        if (!customer) return 0;
+    
+        // Calculate balance up to the beginning of the currently selected month
+        const currentMonth = selectedDate.getMonth();
+        const currentYear = selectedDate.getFullYear();
+        const endOfLastMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+    
+        let totalPreviousPurchases = 0;
+    
+        // Consider all purchases up to the end of last month
+        const previousPurchases = purchases.filter(p => {
+            if (p.customerId !== customerId) return false;
+            const purchaseDate = p.date instanceof Date ? p.date : new Date(p.date);
+            return purchaseDate <= endOfLastMonth;
+        });
+    
+        if (previousPurchases.length > 0) {
+            totalPreviousPurchases = calculateTotals(previousPurchases).amount;
         }
-
-        return totalPreviousBalance;
+    
+        // Consider all advance payments up to the end of last month
+        const previousAdvancePayments = advancePayments.filter(payment => {
+            if (payment.customerId !== customerId) return false;
+            const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+            return paymentDate <= endOfLastMonth;
+        });
+    
+        const totalPreviousAdvance = previousAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+        return totalPreviousPurchases - totalPreviousAdvance;
     };
 
     const selectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
@@ -3282,11 +3282,11 @@ const Home = () => {
             if (selectedCustomerInfo) {
                 // Try to get monthly rates first
                 const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                
+
                 // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-                const milkRate = monthlyRates ? monthlyRates.milkRate : 
+                const milkRate = monthlyRates ? monthlyRates.milkRate :
                     (selectedCustomerInfo.customMilkRate || rates.milk);
-                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
                     (selectedCustomerInfo.customYogurtRate || rates.yogurt);
 
                 // Calculate the total amount using the rates
@@ -3427,8 +3427,9 @@ const Home = () => {
         const formattedDate = `${new Date().getDate()}/${selectedMonth + 1}/${selectedYear}`;
 
         // Calculate total milk and yogurt
-        const milkRate = customer.customMilkRate || rates.milk;
-        const yogurtRate = customer.customYogurtRate || rates.yogurt;
+        const monthlyRates = getMonthlyRates(customer.id, selectedMonth, selectedYear);
+        const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
@@ -3444,6 +3445,9 @@ const Home = () => {
 
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
+            const prevMonthRates = getMonthlyRates(customer.id, m, selectedYear);
+            const milkRate = prevMonthRates ? prevMonthRates.milkRate : (customer.customMilkRate || rates.milk);
+            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
             const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
             const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
@@ -3670,8 +3674,8 @@ const Home = () => {
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
                             <!-- Payment methods in a row, with smaller images -->
                             <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="${easypaisa}" alt="EasyPaisa" style="width: 190px; height:50px; object-fit: contain;" />
-                                <span style="font-size: 14px;">03457411666</span>
+                                <img src="${allied}" alt="EasyPaisa" style="width: 190px; height:50px; object-fit: contain;" />
+                                <span style="font-size: 14px;">Account No: 07723910022</span>
                             </div>
                             
                             
@@ -3721,13 +3725,16 @@ const Home = () => {
         const monthsData = [];
         let runningBalance = 0;
         let runningAdvanceTotal = 0;
-        const milkRate = customer.customMilkRate || rates.milk;
-        const yogurtRate = customer.customYogurtRate || rates.yogurt;
+       
 
         // Process each month
         for (let month = 0; month < 12; month++) {
             // Get monthly purchases for this month
             const monthlyPurchases = filterPurchasesByMonth(customer.id, month, selectedYear);
+            const monthlyRates = getMonthlyRates(customer.id, month, selectedYear);
+            const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+
 
             // Skip months with no activity unless there's a previous balance
             if (monthlyPurchases.length === 0 && runningBalance === 0) continue;
@@ -4022,16 +4029,16 @@ const Home = () => {
         const purchaseDate = new Date(purchase.date);
         const month = purchaseDate.getMonth();
         const year = purchaseDate.getFullYear();
-        
+
         // Try to get monthly rates first
         const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
-        
+
         // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-        const milkRate = monthlyRates ? monthlyRates.milkRate : 
+        const milkRate = monthlyRates ? monthlyRates.milkRate :
             (purchase.customMilkRate || rates.milk);
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
             (purchase.customYogurtRate || rates.yogurt);
-        
+
         return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
     };
 
@@ -4085,6 +4092,35 @@ const Home = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const deletePurchase = async (purchaseId) => {
+        setLoading(true);
+        try {
+            const purchaseRef = doc(firestore, 'purchases', purchaseId);
+            await deleteDoc(purchaseRef);
+    
+            // Update local state
+            const updatedPurchases = purchases.filter(p => p.id !== purchaseId);
+            setPurchases(updatedPurchases);
+    
+            // also update daily purchases view
+            const updatedDailyPurchases = dailyPurchases.filter(p => p.id !== purchaseId);
+            setDailyPurchases(updatedDailyPurchases);
+    
+            setSuccessMessage('Purchase deleted successfully.');
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error deleting purchase: ", error);
+            setSuccessMessage("Error deleting purchase.");
+            setShowSuccessPopup(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const handleDeletePurchase = (purchaseId) => {
+        requestPasswordForDelete(() => deletePurchase(purchaseId));
     };
 
     return (
@@ -4833,7 +4869,7 @@ const Home = () => {
                                                     <span className="total-label">دہی (Yogurt):</span>
                                                     <span className="total-value">{(selectedCustomerTotals.yogurt !== undefined ? selectedCustomerTotals.yogurt.toFixed(1) : '0.0')} کلو</span>
                                                 </div>
-                                               
+
                                                 <div className="total-item total-amount" style={{ gridColumn: 'span 2', borderTop: '1px dashed #ddd', paddingTop: '10px', marginTop: '5px' }}>
                                                     <span className="total-label">Total Amount:</span>
                                                     <span className="total-value">Rs. {(customSelectedCustomerTotals.amount !== undefined ? customSelectedCustomerTotals.amount.toFixed(2) : '0.00')}</span>
@@ -5001,31 +5037,36 @@ const Home = () => {
                                                 {dailyPurchases.length > 0 && (
                                                     <div className="daily-purchases">
                                                         <h4>Daily Purchase Details for {selectedDate.toLocaleDateString()}</h4>
-                                                        <table>
+                                                        <table className="daily-purchases-table">
                                                             <thead>
                                                                 <tr>
                                                                     <th>وقت</th>
                                                                     <th>دودھ (لیٹر)</th>
                                                                     <th>دہی (کلو)</th>
                                                                     <th>رقم</th>
+                                                                    <th>اعمال</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {dailyPurchases.map(purchase => (
                                                                     <tr key={purchase.id}>
                                                                         <td>{new Date(purchase.date).toLocaleTimeString()}</td>
-                                                                        <td>{purchase.milk}</td>
-                                                                        <td>{purchase.yogurt}</td>
-                                                                        <td>روپے {recalculatePurchaseAmount(purchase).toFixed(2)}</td>
+                                                                        <td>{purchase.milk || 0}</td>
+                                                                        <td>{purchase.yogurt || 0}</td>
+                                                                        <td>{recalculatePurchaseAmount(purchase).toFixed(2)} روپے</td>
+                                                                        <td>
+                                                                            <button className="action-btn" onClick={() => handleDeletePurchase(purchase.id)}><DeleteIcon /></button>
+                                                                        </td>
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
                                                             <tfoot>
                                                                 <tr>
                                                                     <td><strong>کل</strong></td>
-                                                                    <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.milk) || 0), 0)} لیٹر</strong></td>
-                                                                    <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.yogurt) || 0), 0)} کلو</strong></td>
-                                                                    <td><strong>روپے {dailyPurchases.reduce((sum, p) => sum + recalculatePurchaseAmount(p), 0).toFixed(2)}</strong></td>
+                                                                    <td><strong>{dailyPurchases.reduce((sum, p) => sum + (p.milk || 0), 0)} لیٹر</strong></td>
+                                                                    <td><strong>{dailyPurchases.reduce((sum, p) => sum + (p.yogurt || 0), 0)} کلو</strong></td>
+                                                                    <td><strong>{dailyPurchases.reduce((sum, p) => sum + recalculatePurchaseAmount(p), 0).toFixed(2)} روپے</strong></td>
+                                                                    <td></td>
                                                                 </tr>
                                                             </tfoot>
                                                         </table>
@@ -5035,6 +5076,11 @@ const Home = () => {
                                                 {dailyPurchases.length === 0 && showCalendar && (
                                                     <div className="daily-purchases">
                                                         <p>No purchases found for {selectedDate.toLocaleDateString()}</p>
+                                                    </div>
+                                                )}
+
+                                                <div className="daily-purchases">
+
                                                         <button
                                                             className="add-purchase-btn"
                                                             onClick={() => showPurchaseModal(selectedCustomer)}
@@ -5052,7 +5098,7 @@ const Home = () => {
                                                             خریداری درج کریں
                                                         </button>
                                                     </div>
-                                                )}
+                                                
                                             </div>
                                         )}
                                     </div>
@@ -5215,7 +5261,7 @@ const Home = () => {
                     <div className="modal-content">
                         <span className="close" onClick={() => !loading && closeModal('purchaseModal')}>&times;</span>
                         <h3>نئی خریداری</h3>
-                       
+
 
                         <form id="purchaseForm" onSubmit={handlePurchaseFormSubmit}>
                             {/* New fields for amount-based calculation */}
