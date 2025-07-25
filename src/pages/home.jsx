@@ -21,7 +21,7 @@ import LocalDrinkIcon from '@mui/icons-material/LocalDrink';
 import CancelIcon from '@mui/icons-material/Cancel';
 import LockIcon from '@mui/icons-material/Lock';
 import easypaisa from '../assets/easy.jpg';
-import allied from '../assets/allied.jpg';
+import allied from '../assets/allied.png';
 // Create a placeholder for JazzCash if you don't have an image
 const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
@@ -2946,37 +2946,37 @@ const Home = () => {
     // Add this function after the filterPurchasesByMonth function
     const getAllPreviousMonthsBalance = (customerId) => {
         if (!customerId) return 0;
-    
+
         const customer = customers.find(c => c.id === customerId);
         if (!customer) return 0;
-    
+
         // Calculate balance up to the beginning of the currently selected month
         const currentMonth = selectedDate.getMonth();
         const currentYear = selectedDate.getFullYear();
         const endOfLastMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
-    
+
         let totalPreviousPurchases = 0;
-    
+
         // Consider all purchases up to the end of last month
         const previousPurchases = purchases.filter(p => {
             if (p.customerId !== customerId) return false;
             const purchaseDate = p.date instanceof Date ? p.date : new Date(p.date);
             return purchaseDate <= endOfLastMonth;
         });
-    
+
         if (previousPurchases.length > 0) {
             totalPreviousPurchases = calculateTotals(previousPurchases).amount;
         }
-    
+
         // Consider all advance payments up to the end of last month
         const previousAdvancePayments = advancePayments.filter(payment => {
             if (payment.customerId !== customerId) return false;
             const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
             return paymentDate <= endOfLastMonth;
         });
-    
+
         const totalPreviousAdvance = previousAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
-    
+
         return totalPreviousPurchases - totalPreviousAdvance;
     };
 
@@ -3577,6 +3577,31 @@ const Home = () => {
                     .balance-label {
                         font-weight: bold;
                     }
+                    /* New styles for bottom info */
+                    .bottom-info {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 1em;
+                    }
+                    .bottom-info .account-row {
+                        margin-bottom: 8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                    }
+                    .bottom-info .iban {
+                        font-weight: bold;
+                        direction: ltr;
+                        margin-left: 8px;
+                    }
+                    .bottom-info .name-row {
+                        margin-bottom: 8px;
+                        font-weight: bold;
+                    }
+                    .bottom-info .contact-row {
+                        margin-bottom: 8px;
+                    }
                 </style>
             </head>
             <body>
@@ -3666,22 +3691,13 @@ const Home = () => {
                     <div class="footer">
                         درخواست ہے کہ 7 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
                     </div>
-                    
+                     
                     <!-- Payment Methods Section -->
-                    <div style="margin-top: 15px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                    <div style="margin-top: 5px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
                         <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
-                            <!-- Payment methods in a row, with smaller images -->
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="${allied}" alt="EasyPaisa" style="width: 190px; height:50px; object-fit: contain;" />
-                                <span style="font-size: 14px;">Account No: 07723910022</span>
-                            </div>
-                            
-                            
-                        </div>
+                                <span style="font-size: 14px; font-weight: bold;"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
+                        <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain; margin-left: 8px;" />
                     </div>
-                    
                 </div>
             </body>
             </html>
@@ -3725,7 +3741,7 @@ const Home = () => {
         const monthsData = [];
         let runningBalance = 0;
         let runningAdvanceTotal = 0;
-       
+
 
         // Process each month
         for (let month = 0; month < 12; month++) {
@@ -4099,15 +4115,15 @@ const Home = () => {
         try {
             const purchaseRef = doc(firestore, 'purchases', purchaseId);
             await deleteDoc(purchaseRef);
-    
+
             // Update local state
             const updatedPurchases = purchases.filter(p => p.id !== purchaseId);
             setPurchases(updatedPurchases);
-    
+
             // also update daily purchases view
             const updatedDailyPurchases = dailyPurchases.filter(p => p.id !== purchaseId);
             setDailyPurchases(updatedDailyPurchases);
-    
+
             setSuccessMessage('Purchase deleted successfully.');
             setShowSuccessPopup(true);
         } catch (error) {
@@ -4118,7 +4134,7 @@ const Home = () => {
             setLoading(false);
         }
     };
-    
+
     const handleDeletePurchase = (purchaseId) => {
         requestPasswordForDelete(() => deletePurchase(purchaseId));
     };
@@ -5081,24 +5097,24 @@ const Home = () => {
 
                                                 <div className="daily-purchases">
 
-                                                        <button
-                                                            className="add-purchase-btn"
-                                                            onClick={() => showPurchaseModal(selectedCustomer)}
-                                                            style={{
-                                                                backgroundColor: '#2d6a4f',
-                                                                color: 'white',
-                                                                padding: '10px 20px',
-                                                                border: 'none',
-                                                                borderRadius: '5px',
-                                                                cursor: 'pointer',
-                                                                marginTop: '15px',
-                                                                fontSize: '16px'
-                                                            }}
-                                                        >
-                                                            خریداری درج کریں
-                                                        </button>
-                                                    </div>
-                                                
+                                                    <button
+                                                        className="add-purchase-btn"
+                                                        onClick={() => showPurchaseModal(selectedCustomer)}
+                                                        style={{
+                                                            backgroundColor: '#2d6a4f',
+                                                            color: 'white',
+                                                            padding: '10px 20px',
+                                                            border: 'none',
+                                                            borderRadius: '5px',
+                                                            cursor: 'pointer',
+                                                            marginTop: '15px',
+                                                            fontSize: '16px'
+                                                        }}
+                                                    >
+                                                        خریداری درج کریں
+                                                    </button>
+                                                </div>
+
                                             </div>
                                         )}
                                     </div>
