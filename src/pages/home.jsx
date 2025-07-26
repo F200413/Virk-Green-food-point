@@ -3687,15 +3687,17 @@ const Home = () => {
                             <span class="${isCredit ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance)}</span>
                         </div>
                     </div>
-                    <!-- Payment Methods Section -->
+                                        <!-- Payment Methods Section -->
                     <div style="margin-top: 5px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
-                               <span style="font-size: 14px; font-weight: bold;"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
-                        <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain; margin-left: 8px;" />
+                       
+                        <span style="font-size: 14px; font-weight: bold;"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
+                         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                            <div style="font-weight: bold; font-size: 14px;">پیمنٹ کے طریقے</div>
+                            <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain;" />
+                        </div>
                     </div>
                                         
-                    <div class="footer">
-                             <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px;">پیمنٹ کے طریقے</div>
-                        
+                    <div class="footer">                        
                         درخواست ہے کہ 7 تاریخ تک ادائیگی کریں۔ اگر ادائیگی نہیں ہوگی تو سپلائی بند کر دی جائے گی۔
                     </div>
                      
