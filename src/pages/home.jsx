@@ -1887,10 +1887,6 @@ const Home = () => {
                             <span>کُل رقم :</span>
                             <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span>ٹوٹل :</span>
-                            <span>${(bill.grandTotal !== undefined ? bill.grandTotal.toFixed(2) : '0.00')}</span>
-                        </div>
                     </div>
                     
                   
