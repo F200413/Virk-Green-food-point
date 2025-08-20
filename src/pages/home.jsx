@@ -8,6 +8,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import PaymentIcon from '@mui/icons-material/Payment';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -83,6 +85,15 @@ const Home = () => {
     const [dailyPurchases, setDailyPurchases] = useState([]);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
+    
+    // Payment summary state
+    const [paymentSummary, setPaymentSummary] = useState({
+        totalMilkAmount: 0,
+        totalYogurtAmount: 0,
+        totalRevenue: 0,
+        totalPaymentsReceived: 0,
+        outstandingAmount: 0
+    });
 
     // Password verification for delete operations
     const [showPasswordVerification, setShowPasswordVerification] = useState(false);
@@ -1087,6 +1098,235 @@ const Home = () => {
 
         return () => {
             document.head.removeChild(supplierStyle);
+        };
+    }, []);
+
+    // Add payment summary styles
+    useEffect(() => {
+        const paymentSummaryStyle = document.createElement('style');
+        paymentSummaryStyle.textContent = `
+            /* Payment Summary Styles */
+            .payment-summary-header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            
+            .payment-summary-header h2 {
+                color: #2d6a4f;
+                margin-bottom: 10px;
+            }
+            
+            .summary-subtitle {
+                color: #6c757d;
+                font-size: 16px;
+                margin: 0;
+            }
+            
+            .payment-summary-content {
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+            }
+            
+            .summary-cards-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+            
+            .summary-card {
+                background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+                border-radius: 15px;
+                padding: 25px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                border-left: 5px solid #007bff;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+            
+            .summary-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+            
+            .total-milk-card {
+                border-left-color: #17a2b8;
+            }
+            
+            .total-revenue-card {
+                border-left-color: #007bff;
+            }
+            
+            .payments-received-card {
+                border-left-color: #28a745;
+            }
+            
+            .outstanding-card {
+                border-left-color: #dc3545;
+            }
+            
+            .card-icon {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #007bff, #0056b3);
+                color: white;
+                flex-shrink: 0;
+            }
+            
+            .total-milk-card .card-icon {
+                background: linear-gradient(135deg, #17a2b8, #138496);
+            }
+            
+            .payments-received-card .card-icon {
+                background: linear-gradient(135deg, #28a745, #1e7e34);
+            }
+            
+            .outstanding-card .card-icon {
+                background: linear-gradient(135deg, #dc3545, #c82333);
+            }
+            
+            .card-content {
+                flex: 1;
+            }
+            
+            .card-content h3 {
+                margin: 0 0 10px 0;
+                font-size: 16px;
+                color: #6c757d;
+                font-weight: 500;
+            }
+            
+            .main-value {
+                font-size: 24px;
+                font-weight: bold;
+                color: #212529;
+                margin-bottom: 5px;
+            }
+            
+            .sub-value {
+                font-size: 14px;
+                color: #6c757d;
+            }
+            
+            .payment-breakdown {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 30px;
+            }
+            
+            .breakdown-section {
+                background: white;
+                border-radius: 12px;
+                padding: 25px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            }
+            
+            .breakdown-section h3 {
+                margin: 0 0 20px 0;
+                color: #212529;
+                font-size: 20px;
+            }
+            
+            .breakdown-table table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            .breakdown-table th,
+            .breakdown-table td {
+                padding: 12px 15px;
+                text-align: right;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .breakdown-table th {
+                background-color: #f8f9fa;
+                color: #495057;
+                font-weight: 600;
+                text-align: center;
+            }
+            
+            .breakdown-table tr:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .breakdown-table .total-row {
+                background-color: #e3f2fd;
+            }
+            
+            .breakdown-table .received-row {
+                background-color: #e8f5e8;
+            }
+            
+            .breakdown-table .outstanding-row {
+                background-color: #ffebee;
+            }
+            
+            .payment-percentage {
+                background: white;
+                border-radius: 12px;
+                padding: 25px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            
+            .payment-percentage h4 {
+                margin: 0 0 20px 0;
+                text-align: center;
+                color: #212529;
+            }
+            
+            .percentage-bar {
+                width: 100%;
+                height: 20px;
+                background-color: #e9ecef;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-bottom: 10px;
+            }
+            
+            .percentage-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #28a745, #20c997);
+                transition: width 0.3s ease;
+            }
+            
+            .percentage-text {
+                text-align: center;
+                font-size: 18px;
+                font-weight: bold;
+                color: #28a745;
+            }
+            
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .summary-cards-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .payment-breakdown {
+                    grid-template-columns: 1fr;
+                }
+                
+                .summary-card {
+                    flex-direction: column;
+                    text-align: center;
+                }
+            }
+        `;
+        document.head.appendChild(paymentSummaryStyle);
+
+        return () => {
+            document.head.removeChild(paymentSummaryStyle);
         };
     }, []);
 
@@ -2804,6 +3044,51 @@ const Home = () => {
         // }, 500);
     };
 
+    // Calculate payment summary for all monthly customers
+    const calculatePaymentSummary = async () => {
+        try {
+            let totalMilkAmount = 0;
+            let totalYogurtAmount = 0;
+            let totalRevenue = 0;
+            let totalPaymentsReceived = 0;
+
+            // Calculate totals from all customer purchases
+            for (const customer of customers) {
+                const customerPurchases = purchases.filter(purchase => purchase.customerId === customer.id);
+                
+                for (const purchase of customerPurchases) {
+                    totalMilkAmount += parseFloat(purchase.milk || 0);
+                    totalYogurtAmount += parseFloat(purchase.yogurt || 0);
+                    totalRevenue += parseFloat(purchase.total || 0);
+                }
+            }
+
+            // Calculate total payments received from all advance payments
+            for (const payment of advancePayments) {
+                totalPaymentsReceived += parseFloat(payment.amount || 0);
+            }
+
+            const outstandingAmount = totalRevenue - totalPaymentsReceived;
+
+            setPaymentSummary({
+                totalMilkAmount,
+                totalYogurtAmount,
+                totalRevenue,
+                totalPaymentsReceived,
+                outstandingAmount
+            });
+        } catch (error) {
+            console.error('Error calculating payment summary:', error);
+        }
+    };
+
+    // useEffect to recalculate payment summary when data changes
+    useEffect(() => {
+        if (customers.length > 0 && purchases.length > 0) {
+            calculatePaymentSummary();
+        }
+    }, [customers, purchases, advancePayments]);
+
     // Update the showCustomerPurchases function
     const showCustomerPurchases = (customerId) => {
         setSelectedCustomer(customerId);
@@ -4175,6 +4460,15 @@ const Home = () => {
                                 </div>
                                 <div className="sidebar-menu-item">
                                     <button
+                                        onClick={() => showSection('paymentSummary')}
+                                        className={activeSection === 'paymentSummary' ? 'active' : ''}
+                                    >
+                                        <span className="icon"><AccountBalanceIcon fontSize="small" /></span>
+                                        <span>پیمنٹ کی مکمل رپورٹ</span>
+                                    </button>
+                                </div>
+                                <div className="sidebar-menu-item">
+                                    <button
                                         onClick={() => showSection('purchaseList')}
                                         className={activeSection === 'purchaseList' ? 'active' : ''}
                                     >
@@ -5181,6 +5475,127 @@ const Home = () => {
                                     })}
                                 </tbody>
                             </table>
+                        </div>
+                    </section>
+
+                    {/* Payment Summary Section */}
+                    <section id="paymentSummary" className={activeSection === 'paymentSummary' ? 'active' : ''}>
+                        <div className="payment-summary-header">
+                            <h2>پیمنٹ کی مکمل رپورٹ</h2>
+                            <p className="summary-subtitle">تمام ماہانہ گاہکوں کی مکمل رپورٹ</p>
+                        </div>
+
+                        <div className="payment-summary-content">
+                            <div className="summary-cards-grid">
+                                <div className="summary-card total-milk-card">
+                                    <div className="card-icon">
+                                        <LocalDrinkIcon fontSize="large" />
+                                    </div>
+                                    <div className="card-content">
+                                        <h3>کل دودھ</h3>
+                                        <div className="main-value">{paymentSummary.totalMilkAmount.toFixed(1)} لیٹر</div>
+                                        <div className="sub-value">دہی: {paymentSummary.totalYogurtAmount.toFixed(1)} کلو</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card total-revenue-card">
+                                    <div className="card-icon">
+                                        <PaymentIcon fontSize="large" />
+                                    </div>
+                                    <div className="card-content">
+                                        <h3>کل رقم</h3>
+                                        <div className="main-value">Rs. {paymentSummary.totalRevenue.toFixed(0)}</div>
+                                        <div className="sub-value">تمام بلز کی رقم</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card payments-received-card">
+                                    <div className="card-icon">
+                                        <AccountBalanceIcon fontSize="large" />
+                                    </div>
+                                    <div className="card-content">
+                                        <h3>پیمنٹ موصولہ</h3>
+                                        <div className="main-value">Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</div>
+                                        <div className="sub-value">جمع شدہ رقم</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card outstanding-card">
+                                    <div className="card-icon">
+                                        <CreditCardIcon fontSize="large" />
+                                    </div>
+                                    <div className="card-content">
+                                        <h3>باقی رقم</h3>
+                                        <div className="main-value" style={{color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745'}}>
+                                            Rs. {paymentSummary.outstandingAmount.toFixed(0)}
+                                        </div>
+                                        <div className="sub-value">وصول کرنا باقی</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="payment-breakdown">
+                                <div className="breakdown-section">
+                                    <h3>تفصیلی رپورٹ</h3>
+                                    <div className="breakdown-table">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>تفصیلات</th>
+                                                    <th>مقدار</th>
+                                                    <th>رقم (Rs.)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>کل دودھ فروخت</td>
+                                                    <td>{paymentSummary.totalMilkAmount.toFixed(1)} لیٹر</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>کل دہی فروخت</td>
+                                                    <td>{paymentSummary.totalYogurtAmount.toFixed(1)} کلو</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr className="total-row">
+                                                    <td><strong>کل آمدن</strong></td>
+                                                    <td>-</td>
+                                                    <td><strong>Rs. {paymentSummary.totalRevenue.toFixed(0)}</strong></td>
+                                                </tr>
+                                                <tr className="received-row">
+                                                    <td><strong>پیمنٹ موصولہ</strong></td>
+                                                    <td>-</td>
+                                                    <td style={{color: '#28a745'}}><strong>Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</strong></td>
+                                                </tr>
+                                                <tr className="outstanding-row">
+                                                    <td><strong>باقی رقم</strong></td>
+                                                    <td>-</td>
+                                                    <td style={{color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745'}}>
+                                                        <strong>Rs. {paymentSummary.outstandingAmount.toFixed(0)}</strong>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div className="payment-percentage">
+                                    <h4>پیمنٹ کی صورتحال</h4>
+                                    <div className="percentage-bar">
+                                        <div 
+                                            className="percentage-fill" 
+                                            style={{
+                                                width: `${paymentSummary.totalRevenue > 0 ? (paymentSummary.totalPaymentsReceived / paymentSummary.totalRevenue) * 100 : 0}%`
+                                            }}
+                                        ></div>
+                                    </div>
+                                    <div className="percentage-text">
+                                        {paymentSummary.totalRevenue > 0 ? 
+                                            ((paymentSummary.totalPaymentsReceived / paymentSummary.totalRevenue) * 100).toFixed(1) : 0
+                                        }% پیمنٹ مکمل
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </main>
