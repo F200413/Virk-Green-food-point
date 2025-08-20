@@ -1619,11 +1619,22 @@ const Home = () => {
             const ratesDoc = doc(firestore, 'settings', 'rates');
             const ratesSnapshot = await getDoc(ratesDoc);
             if (ratesSnapshot.exists()) {
-                setRates(ratesSnapshot.data());
+                const data = ratesSnapshot.data();
+                // Ensure monthlyRates property exists to prevent data loss
+                setRates({
+                    milk: data.milk || 120,
+                    yogurt: data.yogurt || 140,
+                    monthlyRates: data.monthlyRates || {}
+                });
             } else {
-                // Initialize rates if they don't exist
-                await setDoc(ratesDoc, { milk: 120, yogurt: 140 });
-                setRates({ milk: 120, yogurt: 140 });
+                // Initialize rates if they don't exist - include monthlyRates property
+                const initialRates = { 
+                    milk: 120, 
+                    yogurt: 140, 
+                    monthlyRates: {} 
+                };
+                await setDoc(ratesDoc, initialRates);
+                setRates(initialRates);
             }
         } catch (error) {
             console.error("Error fetching rates: ", error);
@@ -2040,7 +2051,13 @@ const Home = () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
-            await setDoc(ratesDoc, rates);
+            // Ensure we preserve monthlyRates when updating global rates
+            const updatedRates = {
+                milk: rates.milk,
+                yogurt: rates.yogurt,
+                monthlyRates: rates.monthlyRates || {} // Preserve existing monthly rates
+            };
+            await setDoc(ratesDoc, updatedRates);
             closeModal('ratesModal');
             setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);
@@ -2124,7 +2141,14 @@ const Home = () => {
         const key = `${customerId}_${year}_${month}`;
         // Ensure rates.monthlyRates is always an object
         if (!rates.monthlyRates) return null;
-        return rates.monthlyRates[key] || null;
+        const monthlyRate = rates.monthlyRates[key];
+        // Only return monthly rates if they have valid values (not null, undefined, or 0)
+        if (monthlyRate && 
+            typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
+            typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
+            return monthlyRate;
+        }
+        return null;
     };
     const deleteAdvancePayment = async (paymentId) => {
         if (!paymentId) return;
