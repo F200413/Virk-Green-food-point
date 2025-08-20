@@ -111,6 +111,20 @@ const Home = () => {
         yogurtRate: 0
     });
 
+    // Monthly Report State
+    const [monthlyReport, setMonthlyReport] = useState({
+        selectedMonth: new Date().getMonth(),
+        selectedYear: new Date().getFullYear(),
+        reportData: {
+            totalAdvanceReceived: 0,
+            totalMilkSold: 0,
+            totalYogurtSold: 0,
+            totalRevenue: 0,
+            outstandingAmount: 0,
+            customerData: []
+        }
+    });
+
     // Helper function to round numbers
     const roundNumber = (num) => {
         return Math.round(num);
@@ -1183,6 +1197,189 @@ const Home = () => {
             .total-milk-card .card-icon {
                 background: linear-gradient(135deg, #17a2b8, #138496);
             }
+
+            /* Monthly Report Styles */
+            .monthly-report-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 30px;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            .report-controls {
+                display: flex;
+                gap: 20px;
+                align-items: end;
+            }
+
+            .report-controls .form-group {
+                margin-bottom: 0;
+            }
+
+            .monthly-report-content {
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .report-summary-cards {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+
+            .summary-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                border-left: 4px solid;
+                transition: transform 0.2s ease;
+            }
+
+            .summary-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            }
+
+            .summary-card.advance-received {
+                border-left-color: #28a745;
+            }
+
+            .summary-card.milk-sold {
+                border-left-color: #2d6a4f;
+            }
+
+            .summary-card.yogurt-sold {
+                border-left-color: #9d4edd;
+            }
+
+            .summary-card.total-revenue {
+                border-left-color: #d4af37;
+            }
+
+            .summary-card.outstanding-amount.debt-balance {
+                border-left-color: #dc3545;
+            }
+
+            .summary-card.outstanding-amount.credit-balance {
+                border-left-color: #28a745;
+            }
+
+            .main-value.credit-amount {
+                color: #28a745 !important;
+            }
+
+            .main-value.debt-amount {
+                color: #dc3545 !important;
+            }
+
+            .summary-card .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+
+            .summary-card .card-header h3 {
+                margin: 0;
+                font-size: 14px;
+                color: #6c757d;
+                font-weight: 500;
+            }
+
+            .summary-card .card-icon {
+                font-size: 24px;
+                opacity: 0.7;
+            }
+
+            .summary-card .card-content {
+                text-align: center;
+            }
+
+            .summary-card .main-value {
+                font-size: 28px;
+                font-weight: bold;
+                color: #212529;
+                margin-bottom: 5px;
+            }
+
+            .summary-card .unit {
+                font-size: 12px;
+                color: #6c757d;
+                font-weight: 500;
+            }
+
+            .customer-breakdown {
+                background: white;
+                border-radius: 12px;
+                padding: 25px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+
+            .customer-breakdown h3 {
+                margin-top: 0;
+                margin-bottom: 20px;
+                color: #2d6a4f;
+                font-size: 18px;
+            }
+
+            .customer-table-container {
+                overflow-x: auto;
+            }
+
+            .customer-breakdown-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+
+            .customer-breakdown-table th,
+            .customer-breakdown-table td {
+                padding: 12px;
+                text-align: right;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .customer-breakdown-table th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                color: #495057;
+            }
+
+            .customer-breakdown-table tbody tr:hover {
+                background-color: #f8f9fa;
+            }
+
+            .customer-breakdown-table tfoot td {
+                background-color: #e9ecef;
+                font-weight: bold;
+                border-top: 2px solid #2d6a4f;
+            }
+
+            /* Mobile responsiveness for monthly report */
+            @media screen and (max-width: 768px) {
+                .monthly-report-header {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .report-controls {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                .report-summary-cards {
+                    grid-template-columns: 1fr;
+                }
+
+                .summary-card .main-value {
+                    font-size: 24px;
+                }
+            }
             
             .payments-received-card .card-icon {
                 background: linear-gradient(135deg, #28a745, #1e7e34);
@@ -1348,6 +1545,13 @@ const Home = () => {
         };
         fetchSales();
     }, [bills]);
+
+    // Initialize monthly report when purchases, customers, or advance payments change
+    useEffect(() => {
+        if (purchases.length > 0 && customers.length > 0) {
+            updateMonthlyReport(monthlyReport.selectedMonth, monthlyReport.selectedYear);
+        }
+    }, [purchases, customers, advancePayments]);
 
     // Add this useEffect to monitor selectedCustomer changes
     useEffect(() => {
@@ -3672,6 +3876,94 @@ const Home = () => {
         }), { milk: 0, yogurt: 0, amount: 0 });
     };
 
+    // Calculate Monthly Report Data
+    const calculateMonthlyReportData = (month, year) => {
+        // Filter purchases for the selected month/year
+        const monthlyPurchases = purchases.filter(purchase => {
+            const purchaseDate = purchase.date instanceof Date ? 
+                purchase.date : 
+                new Date(purchase.date);
+            return purchaseDate.getMonth() === month && purchaseDate.getFullYear() === year;
+        });
+
+        // Calculate totals
+        const totalMilkSold = monthlyPurchases.reduce((sum, p) => sum + (parseFloat(p.milk) || 0), 0);
+        const totalYogurtSold = monthlyPurchases.reduce((sum, p) => sum + (parseFloat(p.yogurt) || 0), 0);
+
+        // Calculate revenue
+        let totalRevenue = 0;
+        const customerData = [];
+        const customerStats = {};
+
+        // Group purchases by customer
+        monthlyPurchases.forEach(purchase => {
+            const customerId = purchase.customerId;
+            if (!customerStats[customerId]) {
+                customerStats[customerId] = {
+                    milk: 0,
+                    yogurt: 0,
+                    amount: 0,
+                    customerInfo: customers.find(c => c.id === customerId)
+                };
+            }
+            
+            customerStats[customerId].milk += parseFloat(purchase.milk) || 0;
+            customerStats[customerId].yogurt += parseFloat(purchase.yogurt) || 0;
+            
+            // Calculate amount using customer's rates
+            const customer = customerStats[customerId].customerInfo;
+            const milkRate = customer?.customMilkRate || rates.milk;
+            const yogurtRate = customer?.customYogurtRate || rates.yogurt;
+            
+            customerStats[customerId].amount += 
+                (parseFloat(purchase.milk) || 0) * milkRate + 
+                (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+        });
+
+        // Convert to array and calculate total revenue
+        Object.keys(customerStats).forEach(customerId => {
+            const stats = customerStats[customerId];
+            totalRevenue += stats.amount;
+            customerData.push({
+                customerId,
+                customerName: stats.customerInfo?.name || 'Unknown',
+                milk: stats.milk,
+                yogurt: stats.yogurt,
+                amount: stats.amount
+            });
+        });
+
+        // Calculate advance payments received for this month
+        const monthlyAdvancePayments = advancePayments.filter(payment => {
+            const paymentDate = new Date(payment.date);
+            return paymentDate.getMonth() === month && paymentDate.getFullYear() === year;
+        });
+
+        const totalAdvanceReceived = monthlyAdvancePayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
+
+        // Calculate outstanding amount (Total Revenue - Advance Payments Received)
+        const outstandingAmount = totalRevenue - totalAdvanceReceived;
+
+        return {
+            totalAdvanceReceived,
+            totalMilkSold,
+            totalYogurtSold,
+            totalRevenue,
+            outstandingAmount,
+            customerData: customerData.sort((a, b) => b.amount - a.amount) // Sort by amount descending
+        };
+    };
+
+    // Update monthly report when month/year changes
+    const updateMonthlyReport = (month, year) => {
+        const reportData = calculateMonthlyReportData(month, year);
+        setMonthlyReport({
+            selectedMonth: month,
+            selectedYear: year,
+            reportData
+        });
+    };
+
     // Function for printing a full A4 page monthly bill with green header
     const printA4MonthlyBill = () => {
         // Get selected customer info
@@ -4516,6 +4808,15 @@ const Home = () => {
                                 </div>
                                 <div className="sidebar-menu-item">
                                     <button
+                                        onClick={() => showSection('monthlyReport')}
+                                        className={activeSection === 'monthlyReport' ? 'active' : ''}
+                                    >
+                                        <span className="icon"><DescriptionIcon fontSize="small" /></span>
+                                        <span>ماہانہ رپورٹ</span>
+                                    </button>
+                                </div>
+                                <div className="sidebar-menu-item">
+                                    <button
                                         onClick={() => showSection('dashboard')}
                                         className={activeSection === 'dashboard' ? 'active' : ''}
                                     >
@@ -5094,6 +5395,151 @@ const Home = () => {
                                     <p>کوئی سپلائر نہیں ملا</p>
                                 </div>
                             )}
+                        </div>
+                    </section>
+
+                    {/* Monthly Report Section */}
+                    <section id="monthlyReport" className={activeSection === 'monthlyReport' ? 'active' : ''}>
+                        <div className="monthly-report-header">
+                            <h2>ماہانہ رپورٹ - دودھ اور دہی</h2>
+                            <div className="report-controls">
+                                <div className="form-group">
+                                    <label htmlFor="reportMonth">مہینہ:</label>
+                                    <select
+                                        id="reportMonth"
+                                        value={monthlyReport.selectedMonth}
+                                        onChange={(e) => updateMonthlyReport(parseInt(e.target.value), monthlyReport.selectedYear)}
+                                    >
+                                        <option value={0}>جنوری</option>
+                                        <option value={1}>فروری</option>
+                                        <option value={2}>مارچ</option>
+                                        <option value={3}>اپریل</option>
+                                        <option value={4}>مئی</option>
+                                        <option value={5}>جون</option>
+                                        <option value={6}>جولائی</option>
+                                        <option value={7}>اگست</option>
+                                        <option value={8}>ستمبر</option>
+                                        <option value={9}>اکتوبر</option>
+                                        <option value={10}>نومبر</option>
+                                        <option value={11}>دسمبر</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="reportYear">سال:</label>
+                                    <select
+                                        id="reportYear"
+                                        value={monthlyReport.selectedYear}
+                                        onChange={(e) => updateMonthlyReport(monthlyReport.selectedMonth, parseInt(e.target.value))}
+                                    >
+                                        {[2023, 2024, 2025, 2026].map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="monthly-report-content">
+                            {/* Summary Cards */}
+                            <div className="report-summary-cards">
+                                <div className="summary-card advance-received">
+                                    <div className="card-header">
+                                        <h3>رقم موصولہ</h3>
+                                        <div className="card-icon">💳</div>
+                                    </div>
+                                    <div className="card-content">
+                                        <div className="main-value">Rs. {monthlyReport.reportData.totalAdvanceReceived.toFixed(0)}</div>
+                                        <div className="unit">ایڈوانس پیمنٹ</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card milk-sold">
+                                    <div className="card-header">
+                                        <h3>دودھ فروخت</h3>
+                                        <div className="card-icon">📦</div>
+                                    </div>
+                                    <div className="card-content">
+                                        <div className="main-value">{monthlyReport.reportData.totalMilkSold.toFixed(1)}</div>
+                                        <div className="unit">لیٹر</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card yogurt-sold">
+                                    <div className="card-header">
+                                        <h3>دہی فروخت</h3>
+                                        <div className="card-icon">📦</div>
+                                    </div>
+                                    <div className="card-content">
+                                        <div className="main-value">{monthlyReport.reportData.totalYogurtSold.toFixed(1)}</div>
+                                        <div className="unit">کلو</div>
+                                    </div>
+                                </div>
+
+                                <div className="summary-card total-revenue">
+                                    <div className="card-header">
+                                        <h3>کل آمدنی</h3>
+                                        <div className="card-icon">💰</div>
+                                    </div>
+                                    <div className="card-content">
+                                        <div className="main-value">Rs. {monthlyReport.reportData.totalRevenue.toFixed(0)}</div>
+                                        <div className="unit">روپے</div>
+                                    </div>
+                                </div>
+
+                                <div className={`summary-card outstanding-amount ${monthlyReport.reportData.outstandingAmount < 0 ? 'credit-balance' : 'debt-balance'}`}>
+                                    <div className="card-header">
+                                        <h3>باقایا رقم</h3>
+                                        <div className="card-icon">{monthlyReport.reportData.outstandingAmount < 0 ? '✅' : '⚠️'}</div>
+                                    </div>
+                                    <div className="card-content">
+                                        <div className={`main-value ${monthlyReport.reportData.outstandingAmount < 0 ? 'credit-amount' : 'debt-amount'}`}>
+                                            Rs. {Math.abs(monthlyReport.reportData.outstandingAmount).toFixed(0)}
+                                        </div>
+                                        <div className="unit">{monthlyReport.reportData.outstandingAmount < 0 ? 'کریڈٹ' : 'باقی'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Customer Breakdown Table */}
+                            <div className="customer-breakdown">
+                                <h3>گاہک کی تفصیلات</h3>
+                                {monthlyReport.reportData.customerData.length > 0 ? (
+                                    <div className="customer-table-container">
+                                        <table className="customer-breakdown-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>گاہک کا نام</th>
+                                                    <th>دودھ (لیٹر)</th>
+                                                    <th>دہی (کلو)</th>
+                                                    <th>کل رقم (روپے)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {monthlyReport.reportData.customerData.map((customer, index) => (
+                                                    <tr key={customer.customerId || index}>
+                                                        <td>{customer.customerName}</td>
+                                                        <td>{customer.milk.toFixed(1)}</td>
+                                                        <td>{customer.yogurt.toFixed(1)}</td>
+                                                        <td>Rs. {customer.amount.toFixed(0)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td><strong>مجموعی</strong></td>
+                                                    <td><strong>{monthlyReport.reportData.totalMilkSold.toFixed(1)}</strong></td>
+                                                    <td><strong>{monthlyReport.reportData.totalYogurtSold.toFixed(1)}</strong></td>
+                                                    <td><strong>Rs. {monthlyReport.reportData.totalRevenue.toFixed(0)}</strong></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="no-data-message">
+                                        <p>اس مہینے کے لیے کوئی ڈیٹا نہیں ملا</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </section>
 
