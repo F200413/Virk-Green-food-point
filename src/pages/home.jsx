@@ -4096,19 +4096,27 @@ const Home = () => {
                         padding-top: 0px;
                         margin-bottom: 800;
                         direction: rtl;
+                        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
                     }
                     .bill-container {
                         width: 100%;
                         max-width: 21cm;
                         margin: 0 auto;
-                        border: 1px solid black;
+                        border: 2px solid #2c5aa0;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 15px rgba(44, 90, 160, 0.1);
+                        background: white;
+                        overflow: hidden;
                     }
                     .header {
-                        background-color:rgb(243, 0, 0);
+                        background: linear-gradient(135deg, #2c5aa0 0%, #1e3d6f 100%);
+                        color: white;
                         text-align: center;
                         font-weight: bold;
                         padding: 12px;
-                        border-bottom: 1px solid black;
+                        border-bottom: 3px solid #1e3d6f;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                        letter-spacing: 1px;
                     }
                     table {
                         width: 100%;
@@ -4117,68 +4125,95 @@ const Home = () => {
                     th, td {
                         padding: 5px;
                         text-align: right;
-                        border-bottom: 1px solid black;
-                        border-left: 1px solid black;
+                        border-bottom: 1px solid #dee2e6;
+                        border-left: 1px solid #dee2e6;
                     }
                     th:last-child, td:last-child {
                         border-left: none;
                     }
                     th {
-                        background-color: red;
+                        background: linear-gradient(135deg, #4a90a4 0%, #357a8a 100%);
+                        color: white;
+                        font-weight: bold;
+                        text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f8f9fa;
+                    }
+                    tr:hover {
+                        background-color: #e3f2fd;
                     }
                     .total-row {
                         font-weight: bold;
+                        background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+                        color: #155724;
                     }
                     .footer {
                         padding: 5px;
                         text-align: center;
                         font-size: 0.8em;
-                        color: red;
-                        border-top: 1px solid black;
+                        color: #d73502;
+                        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+                        border-top: 2px solid #f39c12;
+                        font-weight: 600;
                     }
                     .contact {
                         text-align: center;
                         font-size: 0.8em;
+                        color: #495057;
                     }
                     .credit-amount {
-                        color: green;
+                        color: #28a745;
                         font-weight: bold;
+                        text-shadow: 0 1px 2px rgba(40, 167, 69, 0.2);
                     }
                     .due-amount {
-                        color: red;
+                        color: #dc3545;
                         font-weight: bold;
+                        text-shadow: 0 1px 2px rgba(220, 53, 69, 0.2);
                     }
                     .pichla-baqaya {
-                        color: red;
+                        color: #dc3545;
                         font-weight: bold;
+                        text-shadow: 0 1px 2px rgba(220, 53, 69, 0.2);
                     }
                     .running-balance {
                         margin-top: 20px;
-                        border: 1px solid black;
+                        border: 2px solid #4a90a4;
+                        border-radius: 6px;
                         padding: 10px;
+                        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+                        box-shadow: 0 2px 8px rgba(74, 144, 164, 0.1);
                     }
                     .running-balance-title {
                         font-weight: bold;
                         text-align: center;
                         font-size: 1.2em;
                         margin-bottom: 10px;
-                        border-bottom: 1px solid black;
+                        border-bottom: 2px solid #4a90a4;
                         padding-bottom: 5px;
+                        color: #2c5aa0;
                     }
                     .balance-row {
                         display: flex;
                         justify-content: space-between;
                         padding: 5px 0;
-                        border-bottom: 1px dashed #ccc;
+                        border-bottom: 1px dashed #b3d9ff;
+                        transition: background-color 0.2s ease;
+                    }
+                    .balance-row:hover {
+                        background-color: rgba(74, 144, 164, 0.05);
                     }
                     .balance-label {
                         font-weight: bold;
+                        color: #2c5aa0;
                     }
                     /* New styles for bottom info */
                     .bottom-info {
                         margin-top: 30px;
                         text-align: center;
                         font-size: 1em;
+                        color: #495057;
                     }
                     .bottom-info .account-row {
                         margin-bottom: 8px;
@@ -4191,13 +4226,43 @@ const Home = () => {
                         font-weight: bold;
                         direction: ltr;
                         margin-left: 8px;
+                        color: #2c5aa0;
                     }
                     .bottom-info .name-row {
                         margin-bottom: 8px;
                         font-weight: bold;
+                        color: #2c5aa0;
                     }
                     .bottom-info .contact-row {
                         margin-bottom: 8px;
+                        color: #495057;
+                    }
+                    /* Enhanced payment section styling */
+                    .payment-section {
+                        margin-top: 5px;
+                        text-align: center;
+                        border-top: 2px dashed #4a90a4;
+                        padding-top: 10px;
+                        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                        border-radius: 0 0 6px 6px;
+                    }
+                    .payment-info {
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: #2c5aa0;
+                        margin-bottom: 10px;
+                    }
+                    .payment-methods {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        margin-bottom: 10px;
+                    }
+                    .payment-label {
+                        font-weight: bold;
+                        font-size: 14px;
+                        color: #2c5aa0;
                     }
                 </style>
             </head>
@@ -4211,10 +4276,6 @@ const Home = () => {
                         <tr>
                             <td>تاریخ</td>
                             <td>${formattedDate}</td>
-                        </tr>
-                        <tr>
-                            <td>حساب نمبر</td>
-                            <td>${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}</td>
                         </tr>
                         <tr>
                             <td>گاہک کا نام</td>
@@ -4285,12 +4346,12 @@ const Home = () => {
                         </div>
                     </div>
                                         <!-- Payment Methods Section -->
-                    <div style="margin-top: 5px; text-align: center; border-top: 1px dashed #000; padding-top: 10px;">
+                    <div class="payment-section">
                        
-                        <span style="font-size: 14px; font-weight: bold;"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
-                         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                            <div style="font-weight: bold; font-size: 14px;">پیمنٹ کے طریقے</div>
-                            <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain;" />
+                        <span class="payment-info"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
+                         <div class="payment-methods">
+                            <div class="payment-label">پیمنٹ کے طریقے</div>
+                            <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                         </div>
                     </div>
                                         
