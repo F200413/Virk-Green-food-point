@@ -4061,6 +4061,19 @@ const Home = () => {
             return paymentDate <= endOfSelectedMonth;
         });
 
+              // Calculate previous month's payment (only for the previous month)
+              const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+              const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+              const startOfPreviousMonth = new Date(previousYear, previousMonth, 1);
+              const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999);
+              
+              const previousMonthPayments = advancePayments.filter(payment => {
+                  if (payment.customerId !== customer.id) return false;
+                  const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+                  return paymentDate >= startOfPreviousMonth && paymentDate <= endOfPreviousMonth;
+              });
+              const previousMonthPayment = previousMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+      
         // Calculate total advance payments
         const totalAdvancePayments = allAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
 
@@ -4113,6 +4126,7 @@ const Home = () => {
                         color: white;
                         text-align: center;
                         font-weight: bold;
+                        font-size: 27px;
                         padding: 12px;
                         border-bottom: 3px solid #1e3d6f;
                         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
@@ -4318,26 +4332,13 @@ const Home = () => {
                     
                     <!-- Running Balance Section -->
                     <div class="running-balance">
-        
-                        
                         <div class="balance-row">
                             <span class="balance-label">پچھلا بقایا:</span>
-                            <span>${previousBalance}</span>
-                        </div>
-                        
-                        <div class="balance-row">
-                            <span class="balance-label">اس ماہ کل فروخت:</span>
-                            <span>${thisMonthTotal}</span>
-                        </div>
-                        
-                        <div class="balance-row">
-                            <span class="balance-label">کل بقایا:</span>
-                            <span>${grandTotal}</span>
-                        </div>
-                        
-                        <div class="balance-row">
-                            <span class="balance-label">کل ادائیگی:</span>
-                            <span>${totalAdvancePayments}</span>
+                            <span>${remainingBalance-thisMonthTotal}</span>
+                        </div>                  
+                         <div class="balance-row" style="border-bottom: none;">
+                            <span class="balance-label">پچھلے ماہ کی ادائیگی:</span>
+                            <span>${previousMonthPayment}</span>
                         </div>
                         
                         <div class="balance-row" style="border-bottom: none; font-weight: bold; margin-top: 5px;">
@@ -4368,11 +4369,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // Print after a short delay to ensure content is loaded
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // // Print after a short delay to ensure content is loaded
+        // setTimeout(() => {
+        //     printWindow.print();
+        //     printWindow.close();
+        // }, 500);
     };
 
     // Function for printing a multi-month running balance statement
