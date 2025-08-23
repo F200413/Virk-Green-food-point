@@ -4366,7 +4366,7 @@ const Home = () => {
                         </div>                  
                          <div class="balance-row" style="border-bottom: none;">
                             <span class="balance-label">پچھلے ماہ کی ادائیگی:</span>
-                            <span>${previousMonthPayment + currentMonthPayment}</span>
+                            <span>${currentMonthPayment}</span>
                         </div>
 
                         
