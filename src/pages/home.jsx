@@ -75,10 +75,7 @@ const Home = () => {
     const [salesGrowth, setSalesGrowth] = useState(0);
     const [customerSearchForAdvance, setCustomerSearchForAdvance] = useState('');
     const [editingAdvancePayment, setEditingAdvancePayment] = useState(null);
-    const [inventory, setInventory] = useState({
-        milk: 0,
-        yogurt: 0
-    });
+
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -1535,7 +1532,6 @@ const Home = () => {
         fetchRates();
         fetchBills();
         fetchAdvancePayments();
-        fetchInventory();
         fetchSuppliers(); // Add this line
     }, []);
 
@@ -1681,36 +1677,9 @@ const Home = () => {
         }
     };
 
-    const fetchInventory = async () => {
-        try {
-            const inventoryDoc = doc(firestore, 'settings', 'inventory');
-            const inventorySnapshot = await getDoc(inventoryDoc);
-            if (inventorySnapshot.exists()) {
-                setInventory(inventorySnapshot.data());
-            } else {
-                // Initialize inventory if it doesn't exist
-                await setDoc(inventoryDoc, { milk: 0, yogurt: 0 });
-            }
-        } catch (error) {
-            console.error("Error fetching inventory: ", error);
-        }
-    };
 
-    const updateInventory = async (newInventory) => {
-        try {
-            // Ensure inventory values never go below 0
-            const safeInventory = {
-                milk: Math.max(0, newInventory.milk),
-                yogurt: Math.max(0, newInventory.yogurt)
-            };
 
-            const inventoryDoc = doc(firestore, 'settings', 'inventory');
-            await setDoc(inventoryDoc, safeInventory);
-            setInventory(safeInventory);
-        } catch (error) {
-            console.error("Error updating inventory: ", error);
-        }
-    };
+
 
     const addCustomer = async () => {
         setLoading(true);
@@ -1849,18 +1818,18 @@ const Home = () => {
             const milkQty = parseFloat(purchaseFormData.milk) || 0;
             const yogurtQty = parseFloat(purchaseFormData.yogurt) || 0;
 
-            // Check if enough inventory is available
-            if (milkQty > inventory.milk || yogurtQty > inventory.yogurt) {
-                setSuccessMessage("انوینٹری میں کافی مقدار نہیں ہے!");
-                setShowSuccessPopup(true);
-                setLoading(false);
-                return;
-            }
 
-            // Get the customer's custom rates
+
+            // Get rates using proper hierarchy: Monthly Rates → Customer Custom Rates → Global Rates
             const customer = customers.find(c => c.id === selectedCustomer);
-            const milkRate = customer && customer.customMilkRate ? parseFloat(customer.customMilkRate) : rates.milk;
-            const yogurtRate = customer && customer.customYogurtRate ? parseFloat(customer.customYogurtRate) : rates.yogurt;
+            const purchaseMonth = selectedDate.getMonth();
+            const purchaseYear = selectedDate.getFullYear();
+            const monthlyRates = getMonthlyRates(selectedCustomer, purchaseMonth, purchaseYear);
+            
+            const milkRate = monthlyRates ? monthlyRates.milkRate : 
+                (customer?.customMilkRate || rates.milk);
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+                (customer?.customYogurtRate || rates.yogurt);
 
             // Use the selected date for the purchase, but keep current time
             const purchaseDate = new Date(selectedDate);
@@ -1882,12 +1851,7 @@ const Home = () => {
             const purchasesCollection = collection(firestore, 'purchases');
             const docRef = await addDoc(purchasesCollection, purchaseData);
 
-            // Update inventory - ensure values never go below 0
-            const newInventory = {
-                milk: Math.max(0, inventory.milk - milkQty),
-                yogurt: Math.max(0, inventory.yogurt - yogurtQty)
-            };
-            await updateInventory(newInventory);
+
 
             // Update local state immediately
             const newPurchase = {
@@ -1994,13 +1958,7 @@ const Home = () => {
             const totalYogurtAmount = allEntries.reduce((sum, entry) => sum + entry.yogurtTotal, 0);
             const grandTotal = totalMilkAmount + totalYogurtAmount;
 
-            // Check if enough inventory is available
-            if (totalMilkQty > inventory.milk || totalYogurtQty > inventory.yogurt) {
-                setSuccessMessage("انوینٹری میں کافی مقدار نہیں ہے!");
-                setShowSuccessPopup(true);
-                setLoading(false);
-                return;
-            }
+
 
             const billsCollection = collection(firestore, 'bills');
 
@@ -2021,12 +1979,7 @@ const Home = () => {
 
             await addDoc(billsCollection, bill);
 
-            // Update inventory
-            const newInventory = {
-                milk: inventory.milk - totalMilkQty,
-                yogurt: inventory.yogurt - totalYogurtQty
-            };
-            await updateInventory(newInventory);
+
 
             // Update the token number for next bill
             await updateTokenNumber(tokenNumber);
@@ -3607,21 +3560,7 @@ const Home = () => {
         });
     };
 
-    // Add this function with the other handlers
-    const handleInventoryUpdate = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await updateInventory(inventory);
-            setSuccessMessage('انوینٹری کامیابی سے اپ ڈیٹ ہو گئی ہے');
-            setShowSuccessPopup(true);
-        } catch (error) {
-            console.error("Error updating inventory: ", error);
-            setSuccessMessage("انوینٹری اپڈیٹ کرنے میں خرابی");
-        } finally {
-            setLoading(false);
-        }
-    };
+
 
     const showSupplierModal = (mode, supplierId = null) => {
         setModalMode(mode);
@@ -3658,12 +3597,7 @@ const Home = () => {
             };
             await addDoc(suppliersCollection, supplierData);
 
-            // Update total inventory
-            const newInventory = {
-                milk: inventory.milk + (parseFloat(formData.milkQuantity) || 0),
-                yogurt: inventory.yogurt + (parseFloat(formData.yogurtQuantity) || 0)
-            };
-            await updateInventory(newInventory);
+
 
             setFormData({ name: '', phone: '', milkQuantity: 0, yogurtQuantity: 0 });
             closeModal('supplierModal');
@@ -3688,14 +3622,7 @@ const Home = () => {
             };
             await updateDoc(supplierDoc, supplierData);
 
-            // Update total inventory
-            const milkDiff = (parseFloat(formData.milkQuantity) || 0) - (parseFloat(oldSupplier.milkQuantity) || 0);
-            const yogurtDiff = (parseFloat(formData.yogurtQuantity) || 0) - (parseFloat(oldSupplier.yogurtQuantity) || 0);
-            const newInventory = {
-                milk: inventory.milk + milkDiff,
-                yogurt: inventory.yogurt + yogurtDiff
-            };
-            await updateInventory(newInventory);
+
 
             setFormData({ name: '', phone: '', milkQuantity: 0, yogurtQuantity: 0 });
             closeModal('supplierModal');
@@ -3716,12 +3643,7 @@ const Home = () => {
                 const supplier = suppliers.find(s => s.id === supplierId);
                 await deleteDoc(doc(firestore, 'suppliers', supplierId));
 
-                // Update total inventory
-                const newInventory = {
-                    milk: inventory.milk - (parseFloat(supplier.milkQuantity) || 0),
-                    yogurt: inventory.yogurt - (parseFloat(supplier.yogurtQuantity) || 0)
-                };
-                await updateInventory(newInventory);
+
 
                 fetchSuppliers();
                 setSuccessMessage('سپلائر کامیابی سے حذف ہو گیا');
@@ -3935,14 +3857,23 @@ const Home = () => {
             customerStats[customerId].milk += parseFloat(purchase.milk) || 0;
             customerStats[customerId].yogurt += parseFloat(purchase.yogurt) || 0;
 
-            // Calculate amount using customer's rates
-            const customer = customerStats[customerId].customerInfo;
-            const milkRate = customer?.customMilkRate || rates.milk;
-            const yogurtRate = customer?.customYogurtRate || rates.yogurt;
+            // Use stored purchase amount if available (preserves historical rates)
+            if (purchase.total && !isNaN(parseFloat(purchase.total))) {
+                customerStats[customerId].amount += parseFloat(purchase.total);
+            } else {
+                // Fallback: Calculate using proper rate hierarchy: Monthly Rates → Customer Custom Rates → Global Rates
+                const customer = customerStats[customerId].customerInfo;
+                const monthlyRates = getMonthlyRates(customerId, month, year);
+                
+                const milkRate = monthlyRates ? monthlyRates.milkRate : 
+                    (customer?.customMilkRate || rates.milk);
+                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
+                    (customer?.customYogurtRate || rates.yogurt);
 
-            customerStats[customerId].amount +=
-                (parseFloat(purchase.milk) || 0) * milkRate +
-                (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+                customerStats[customerId].amount +=
+                    (parseFloat(purchase.milk) || 0) * milkRate +
+                    (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+            }
         });
 
         // Convert to array and calculate total revenue
@@ -4755,17 +4686,40 @@ const Home = () => {
     // Add this function to show the monthly rates modal
     const showMonthlyRatesModal = (customerId) => {
         const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        // Get historical rates for current month/year if they exist
+        const monthlyRates = getMonthlyRates(customerId, currentMonth, currentYear);
+        const customer = customers.find(c => c.id === customerId);
+        
         setMonthlyRateForm({
             customerId,
-            month: currentDate.getMonth(),
-            year: currentDate.getFullYear(),
-            milkRate: rates.milk,
-            yogurtRate: rates.yogurt
+            month: currentMonth,
+            year: currentYear,
+            milkRate: monthlyRates ? monthlyRates.milkRate : (customer?.customMilkRate || rates.milk),
+            yogurtRate: monthlyRates ? monthlyRates.yogurtRate : (customer?.customYogurtRate || rates.yogurt)
         });
         const modal = document.getElementById('monthlyRatesModal');
         if (modal) {
             modal.style.display = 'block';
         }
+    };
+
+    // Add this function to handle month/year changes in monthly rates modal
+    const handleMonthlyRateFormChange = (field, value) => {
+        const updatedForm = { ...monthlyRateForm, [field]: value };
+        
+        // If month or year changed, update rates to show historical values
+        if (field === 'month' || field === 'year' || field === 'customerId') {
+            const monthlyRates = getMonthlyRates(updatedForm.customerId, updatedForm.month, updatedForm.year);
+            const customer = customers.find(c => c.id === updatedForm.customerId);
+            
+            updatedForm.milkRate = monthlyRates ? monthlyRates.milkRate : (customer?.customMilkRate || rates.milk);
+            updatedForm.yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer?.customYogurtRate || rates.yogurt);
+        }
+        
+        setMonthlyRateForm(updatedForm);
     };
 
     // Add this function to handle monthly rate form submission
@@ -4913,15 +4867,7 @@ const Home = () => {
                                     </button>
                                 </div>
 
-                                <div className="sidebar-menu-item">
-                                    <button
-                                        onClick={() => showSection('quanty')}
-                                        className={activeSection === 'quanty' ? 'active' : ''}
-                                    >
-                                        <span className="icon"><LocalDrinkIcon fontSize="small" /></span>
-                                        <span>دودھ اور دہی کی مقدار</span>
-                                    </button>
-                                </div>
+
                                 <div className="sidebar-menu-item">
                                     <button
                                         onClick={() => showSection('monthlyReport')}
@@ -4994,29 +4940,7 @@ const Home = () => {
                                     </div>
                                 </div>
 
-                                {/* New inventory cards */}
-                                <div className="dashboard-card">
-                                    <div className="card-header">
-                                        <span className="card-title">دودھ کی باقی مقدار</span>
-                                        <span className="card-unit">لیٹر</span>
-                                    </div>
-                                    <div className="card-body">
-                                        <div className="card-value">{(inventory.milk !== undefined ? inventory.milk.toFixed(1) : '0.0')}</div>
-                                        <div className="card-subtitle">موجودہ انوینٹری</div>
-                                    </div>
-                                </div>
 
-                                <div className="dashboard-card">
-
-                                    <div className="card-header">
-                                        <span className="card-title">دہی کی باقی مقدار</span>
-                                        <span className="card-unit">کلو</span>
-                                    </div>
-                                    <div className="card-body">
-                                        <div className="card-value">{(inventory.yogurt !== undefined ? inventory.yogurt.toFixed(1) : '0.0')}</div>
-                                        <div className="card-subtitle">موجودہ انوینٹری</div>
-                                    </div>
-                                </div>
 
                                 {/* Supplier Summary Card */}
                                 <div className="dashboard-card">
@@ -5401,42 +5325,7 @@ const Home = () => {
 
                     </section>
                     {/* Settings Section */}
-                    <section id="quanty" className={activeSection === 'quanty' ? 'active' : ''}>
-                        <h2> انوینٹری کی ترتیبات</h2>
 
-
-
-                        {/* Inventory Form */}
-                        <h3 style={{ marginTop: '30px' }}>انوینٹری کی ترتیبات</h3>
-                        <form onSubmit={handleInventoryUpdate}>
-                            <div className="form-group">
-                                <label htmlFor="milkInventory">دودھ کی کل مقدار (لیٹر):</label>
-                                <input
-                                    type="number"
-                                    id="milkInventory"
-                                    min="0"
-                                    value={inventory.milk}
-                                    onChange={(e) => setInventory({ ...inventory, milk: parseFloat(e.target.value) || 0 })}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="yogurtInventory">دہی کی کل مقدار (کلو):</label>
-                                <input
-                                    type="number"
-                                    id="yogurtInventory"
-                                    min="0"
-                                    value={inventory.yogurt}
-                                    onChange={(e) => setInventory({ ...inventory, yogurt: parseFloat(e.target.value) || 0 })}
-                                    disabled={loading}
-                                />
-                            </div>
-                            <button type="submit" disabled={loading} className="button-with-spinner">
-                                انوینٹری اپڈیٹ کریں
-                                {loading && <LoadingSpinner />}
-                            </button>
-                        </form>
-                    </section>
 
                     {/* Suppliers Section */}
                     <section id="suppliers" className={activeSection === 'suppliers' ? 'active' : ''}>
@@ -6944,7 +6833,7 @@ const Home = () => {
                                 id="customerId"
                                 name="customerId"
                                 value={monthlyRateForm.customerId}
-                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, customerId: e.target.value })}
+                                onChange={(e) => handleMonthlyRateFormChange('customerId', e.target.value)}
                                 disabled={loading}
                                 style={{
                                     padding: '0.7rem',
@@ -6965,7 +6854,7 @@ const Home = () => {
                                 id="month"
                                 name="month"
                                 value={monthlyRateForm.month}
-                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, month: parseInt(e.target.value) })}
+                                onChange={(e) => handleMonthlyRateFormChange('month', parseInt(e.target.value))}
                                 disabled={loading}
                                 style={{
                                     padding: '0.7rem',
@@ -6986,7 +6875,7 @@ const Home = () => {
                                 id="year"
                                 name="year"
                                 value={monthlyRateForm.year}
-                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, year: parseInt(e.target.value) })}
+                                onChange={(e) => handleMonthlyRateFormChange('year', parseInt(e.target.value))}
                                 disabled={loading}
                                 style={{
                                     padding: '0.7rem',
@@ -7008,7 +6897,7 @@ const Home = () => {
                                 id="milkRate"
                                 name="milkRate"
                                 value={monthlyRateForm.milkRate}
-                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, milkRate: parseFloat(e.target.value) })}
+                                onChange={(e) => handleMonthlyRateFormChange('milkRate', parseFloat(e.target.value))}
                                 disabled={loading}
                                 style={{
                                     padding: '0.7rem',
@@ -7026,7 +6915,7 @@ const Home = () => {
                                 id="yogurtRate"
                                 name="yogurtRate"
                                 value={monthlyRateForm.yogurtRate}
-                                onChange={(e) => setMonthlyRateForm({ ...monthlyRateForm, yogurtRate: parseFloat(e.target.value) })}
+                                onChange={(e) => handleMonthlyRateFormChange('yogurtRate', parseFloat(e.target.value))}
                                 disabled={loading}
                                 style={{
                                     padding: '0.7rem',
