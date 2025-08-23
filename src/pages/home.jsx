@@ -24,6 +24,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import LockIcon from '@mui/icons-material/Lock';
 import easypaisa from '../assets/easy.jpg';
 import allied from '../assets/allied.png';
+import whatsapp from '../assets/whatsapp.png';
 // Create a placeholder for JazzCash if you don't have an image
 const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
@@ -85,7 +86,7 @@ const Home = () => {
     const [dailyPurchases, setDailyPurchases] = useState([]);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentProcessing, setPaymentProcessing] = useState(false);
-    
+
     // Payment summary state
     const [paymentSummary, setPaymentSummary] = useState({
         totalMilkAmount: 0,
@@ -1628,10 +1629,10 @@ const Home = () => {
                 });
             } else {
                 // Initialize rates if they don't exist - include monthlyRates property
-                const initialRates = { 
-                    milk: 120, 
-                    yogurt: 140, 
-                    monthlyRates: {} 
+                const initialRates = {
+                    milk: 120,
+                    yogurt: 140,
+                    monthlyRates: {}
                 };
                 await setDoc(ratesDoc, initialRates);
                 setRates(initialRates);
@@ -2143,7 +2144,7 @@ const Home = () => {
         if (!rates.monthlyRates) return null;
         const monthlyRate = rates.monthlyRates[key];
         // Only return monthly rates if they have valid values (not null, undefined, or 0)
-        if (monthlyRate && 
+        if (monthlyRate &&
             typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
             typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
             return monthlyRate;
@@ -3283,7 +3284,7 @@ const Home = () => {
             // Calculate totals from all customer purchases
             for (const customer of customers) {
                 const customerPurchases = purchases.filter(purchase => purchase.customerId === customer.id);
-                
+
                 for (const purchase of customerPurchases) {
                     totalMilkAmount += parseFloat(purchase.milk || 0);
                     totalYogurtAmount += parseFloat(purchase.yogurt || 0);
@@ -3904,8 +3905,8 @@ const Home = () => {
     const calculateMonthlyReportData = (month, year) => {
         // Filter purchases for the selected month/year
         const monthlyPurchases = purchases.filter(purchase => {
-            const purchaseDate = purchase.date instanceof Date ? 
-                purchase.date : 
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
                 new Date(purchase.date);
             return purchaseDate.getMonth() === month && purchaseDate.getFullYear() === year;
         });
@@ -3930,17 +3931,17 @@ const Home = () => {
                     customerInfo: customers.find(c => c.id === customerId)
                 };
             }
-            
+
             customerStats[customerId].milk += parseFloat(purchase.milk) || 0;
             customerStats[customerId].yogurt += parseFloat(purchase.yogurt) || 0;
-            
+
             // Calculate amount using customer's rates
             const customer = customerStats[customerId].customerInfo;
             const milkRate = customer?.customMilkRate || rates.milk;
             const yogurtRate = customer?.customYogurtRate || rates.yogurt;
-            
-            customerStats[customerId].amount += 
-                (parseFloat(purchase.milk) || 0) * milkRate + 
+
+            customerStats[customerId].amount +=
+                (parseFloat(purchase.milk) || 0) * milkRate +
                 (parseFloat(purchase.yogurt) || 0) * yogurtRate;
         });
 
@@ -4061,19 +4062,30 @@ const Home = () => {
             return paymentDate <= endOfSelectedMonth;
         });
 
-              // Calculate previous month's payment (only for the previous month)
-              const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
-              const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
-              const startOfPreviousMonth = new Date(previousYear, previousMonth, 1);
-              const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999);
-              
-              const previousMonthPayments = advancePayments.filter(payment => {
-                  if (payment.customerId !== customer.id) return false;
-                  const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
-                  return paymentDate >= startOfPreviousMonth && paymentDate <= endOfPreviousMonth;
-              });
-              const previousMonthPayment = previousMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      
+        // Calculate previous month's payment (only for the previous month)
+        const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+        const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+        const startOfPreviousMonth = new Date(previousYear, previousMonth, 1);
+        const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999);
+
+        const previousMonthPayments = advancePayments.filter(payment => {
+            if (payment.customerId !== customer.id) return false;
+            const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+            return paymentDate >= startOfPreviousMonth && paymentDate <= endOfPreviousMonth;
+        });
+        const previousMonthPayment = previousMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+
+        // Calculate current/selected month's payment
+        const startOfCurrentMonth = new Date(selectedYear, selectedMonth, 1);
+        const endOfCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+
+        const currentMonthPayments = advancePayments.filter(payment => {
+            if (payment.customerId !== customer.id) return false;
+            const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+            return paymentDate >= startOfCurrentMonth && paymentDate <= endOfCurrentMonth;
+        });
+        const currentMonthPayment = currentMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
+
         // Calculate total advance payments
         const totalAdvancePayments = allAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
 
@@ -4192,7 +4204,7 @@ const Home = () => {
                         text-shadow: 0 1px 2px rgba(220, 53, 69, 0.2);
                     }
                     .running-balance {
-                        margin-top: 20px;
+                        margin-top: 3px;
                         border: 2px solid #4a90a4;
                         border-radius: 6px;
                         padding: 10px;
@@ -4273,6 +4285,22 @@ const Home = () => {
                         gap: 10px;
                         margin-bottom: 10px;
                     }
+                    .payment-methods-container {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        gap: 20px;
+                    }
+                    .payment-left {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .payment-right {
+                        display: flex;
+                        align-items: center;
+                    }
                     .payment-label {
                         font-weight: bold;
                         font-size: 14px;
@@ -4334,12 +4362,13 @@ const Home = () => {
                     <div class="running-balance">
                         <div class="balance-row">
                             <span class="balance-label">پچھلا بقایا:</span>
-                            <span>${remainingBalance-thisMonthTotal}</span>
+                            <span class="${(remainingBalance - thisMonthTotal) < 0 ? 'credit-amount' : 'due-amount'}">${Math.abs(remainingBalance - thisMonthTotal)}</span>
                         </div>                  
                          <div class="balance-row" style="border-bottom: none;">
                             <span class="balance-label">پچھلے ماہ کی ادائیگی:</span>
-                            <span>${previousMonthPayment}</span>
+                            <span>${previousMonthPayment + currentMonthPayment}</span>
                         </div>
+
                         
                         <div class="balance-row" style="border-bottom: none; font-weight: bold; margin-top: 5px;">
                             <span class="balance-label">باقی رقم:</span>
@@ -4352,6 +4381,7 @@ const Home = () => {
                         <span class="payment-info"> Account No: PK84ABPA0010007723910022 &nbsp; | &nbsp; Tahir Ghulam &nbsp; | &nbsp; Contact No: 03457411666</span>
                          <div class="payment-methods">
                             <div class="payment-label">پیمنٹ کے طریقے</div>
+                            <img src="${whatsapp}" alt="WhatsApp" style="width: 60px; height:30px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-right: 10px;" />
                             <img src="${allied}" alt="Allied Bank" style="width: 120px; height:30px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
                         </div>
                     </div>
@@ -4369,11 +4399,11 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // // Print after a short delay to ensure content is loaded
-        // setTimeout(() => {
-        //     printWindow.print();
-        //     printWindow.close();
-        // }, 500);
+        // Print after a short delay to ensure content is loaded
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
     };
 
     // Function for printing a multi-month running balance statement
@@ -6058,7 +6088,7 @@ const Home = () => {
                                     </div>
                                     <div className="card-content">
                                         <h3>باقی رقم</h3>
-                                        <div className="main-value" style={{color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745'}}>
+                                        <div className="main-value" style={{ color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745' }}>
                                             Rs. {paymentSummary.outstandingAmount.toFixed(0)}
                                         </div>
                                         <div className="sub-value">وصول کرنا باقی</div>
@@ -6097,12 +6127,12 @@ const Home = () => {
                                                 <tr className="received-row">
                                                     <td><strong>پیمنٹ موصولہ</strong></td>
                                                     <td>-</td>
-                                                    <td style={{color: '#28a745'}}><strong>Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</strong></td>
+                                                    <td style={{ color: '#28a745' }}><strong>Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</strong></td>
                                                 </tr>
                                                 <tr className="outstanding-row">
                                                     <td><strong>باقی رقم</strong></td>
                                                     <td>-</td>
-                                                    <td style={{color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745'}}>
+                                                    <td style={{ color: paymentSummary.outstandingAmount > 0 ? '#dc3545' : '#28a745' }}>
                                                         <strong>Rs. {paymentSummary.outstandingAmount.toFixed(0)}</strong>
                                                     </td>
                                                 </tr>
@@ -6114,15 +6144,15 @@ const Home = () => {
                                 <div className="payment-percentage">
                                     <h4>پیمنٹ کی صورتحال</h4>
                                     <div className="percentage-bar">
-                                        <div 
-                                            className="percentage-fill" 
+                                        <div
+                                            className="percentage-fill"
                                             style={{
                                                 width: `${paymentSummary.totalRevenue > 0 ? (paymentSummary.totalPaymentsReceived / paymentSummary.totalRevenue) * 100 : 0}%`
                                             }}
                                         ></div>
                                     </div>
                                     <div className="percentage-text">
-                                        {paymentSummary.totalRevenue > 0 ? 
+                                        {paymentSummary.totalRevenue > 0 ?
                                             ((paymentSummary.totalPaymentsReceived / paymentSummary.totalRevenue) * 100).toFixed(1) : 0
                                         }% پیمنٹ مکمل
                                     </div>
