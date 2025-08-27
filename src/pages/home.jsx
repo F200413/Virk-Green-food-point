@@ -25,6 +25,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import easypaisa from '../assets/easy.jpg';
 import allied from '../assets/allied.png';
 import whatsapp from '../assets/whatsapp.png';
+import { DollarSign, Milk } from 'lucide-react';
 // Create a placeholder for JazzCash if you don't have an image
 const jazzCash = "data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ED0006' rx='10' /%3E%3Ctext x='50' y='50' font-family='Arial' font-size='40' fill='white' text-anchor='middle' dominant-baseline='middle'%3EJC%3C/text%3E%3C/svg%3E";
 const Home = () => {
@@ -119,6 +120,7 @@ const Home = () => {
             totalYogurtSold: 0,
             totalRevenue: 0,
             outstandingAmount: 0,
+            paymentsReceivedNextMonthForCurrentMonthSales: 0,
             customerData: []
         }
     });
@@ -1224,7 +1226,7 @@ const Home = () => {
 
             .report-summary-cards {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                 gap: 20px;
                 margin-bottom: 30px;
             }
@@ -1232,15 +1234,34 @@ const Home = () => {
             .summary-card {
                 background: white;
                 border-radius: 12px;
-                padding: 20px;
+                padding: 25px;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
                 border-left: 4px solid;
                 transition: transform 0.2s ease;
+                min-height: 140px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                overflow: hidden;
+                position: relative;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
             }
 
             .summary-card:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            }
+
+            .summary-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.3));
+                border-radius: 12px 12px 0 0;
             }
 
             .summary-card.advance-received {
@@ -1280,6 +1301,7 @@ const Home = () => {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 15px;
+                flex-shrink: 0;
             }
 
             .summary-card .card-header h3 {
@@ -1287,28 +1309,46 @@ const Home = () => {
                 font-size: 14px;
                 color: #6c757d;
                 font-weight: 500;
+                line-height: 1.2;
+                word-wrap: break-word;
+                max-width: 70%;
             }
 
             .summary-card .card-icon {
                 font-size: 24px;
                 opacity: 0.7;
+                flex-shrink: 0;
             }
 
             .summary-card .card-content {
                 text-align: center;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-height: 0;
             }
 
             .summary-card .main-value {
-                font-size: 28px;
+                font-size: 24px;
                 font-weight: bold;
                 color: #212529;
                 margin-bottom: 5px;
+                line-height: 1.1;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+                max-width: 100%;
+                white-space: normal;
+                word-break: break-word;
             }
 
             .summary-card .unit {
                 font-size: 12px;
                 color: #6c757d;
                 font-weight: 500;
+                line-height: 1.2;
+                word-wrap: break-word;
             }
 
             .customer-breakdown {
@@ -1358,6 +1398,12 @@ const Home = () => {
                 border-top: 2px solid #2d6a4f;
             }
 
+            .customer-breakdown-table tfoot tr:last-child td {
+                background-color: #fff3cd;
+                border-top: 2px solid #ffc107;
+                color: #856404;
+            }
+
             /* Mobile responsiveness for monthly report */
             @media screen and (max-width: 768px) {
                 .monthly-report-header {
@@ -1372,10 +1418,52 @@ const Home = () => {
 
                 .report-summary-cards {
                     grid-template-columns: 1fr;
+                    gap: 15px;
+                }
+
+                .summary-card {
+                    padding: 20px;
+                    min-height: 120px;
                 }
 
                 .summary-card .main-value {
-                    font-size: 24px;
+                    font-size: 20px;
+                }
+
+                .summary-card .card-header h3 {
+                    font-size: 13px;
+                }
+
+                .summary-card .unit {
+                    font-size: 11px;
+                }
+            }
+
+            @media screen and (max-width: 480px) {
+                .report-summary-cards {
+                    gap: 12px;
+                }
+
+                .summary-card {
+                    padding: 18px;
+                    min-height: 110px;
+                }
+
+                .summary-card .main-value {
+                    font-size: 18px;
+                }
+
+                .summary-card .card-header h3 {
+                    font-size: 12px;
+                    max-width: 60%;
+                }
+
+                .summary-card .unit {
+                    font-size: 10px;
+                }
+
+                .summary-card .card-icon {
+                    font-size: 20px;
                 }
             }
             
@@ -3897,8 +3985,20 @@ const Home = () => {
 
         const totalAdvanceReceived = monthlyAdvancePayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
 
-        // Calculate outstanding amount (Total Revenue - Advance Payments Received)
-        const outstandingAmount = totalRevenue - totalAdvanceReceived;
+        // Calculate payments received in the next month for current month's sales
+        const nextMonth = month === 11 ? 0 : month + 1;
+        const nextYear = month === 11 ? year + 1 : year;
+        
+        // Get advance payments received in the next month for current month's sales
+        const nextMonthAdvancePayments = advancePayments.filter(payment => {
+            const paymentDate = new Date(payment.date);
+            return paymentDate.getMonth() === nextMonth && paymentDate.getFullYear() === nextYear;
+        });
+
+        const paymentsReceivedNextMonthForCurrentMonthSales = nextMonthAdvancePayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
+
+        // Calculate outstanding amount (Current Month Sales - Payments Received Next Month)
+        const outstandingAmount = totalRevenue - paymentsReceivedNextMonthForCurrentMonthSales;
 
         return {
             totalAdvanceReceived,
@@ -3906,6 +4006,7 @@ const Home = () => {
             totalYogurtSold,
             totalRevenue,
             outstandingAmount,
+            paymentsReceivedNextMonthForCurrentMonthSales,
             customerData: customerData.sort((a, b) => b.amount - a.amount) // Sort by amount descending
         };
     };
@@ -5449,51 +5550,52 @@ const Home = () => {
                             <div className="report-summary-cards">
                                 <div className="summary-card advance-received">
                                     <div className="card-header">
-                                        <h3>رقم موصولہ</h3>
+                                        {/* <h3>رقم موصولہ</h3> */}
                                         <div className="card-icon">💳</div>
                                     </div>
                                     <div className="card-content">
-                                        <div className="main-value">Rs. {monthlyReport.reportData.totalAdvanceReceived.toFixed(0)}</div>
-                                        <div className="unit">ایڈوانس پیمنٹ</div>
+                                        <div className="main-value">Rs. {monthlyReport.reportData.paymentsReceivedNextMonthForCurrentMonthSales.toFixed(2)}</div>
+                                        <div className="unit">اگلے مہینے میں موصولہ</div>
                                     </div>
                                 </div>
 
                                 <div className="summary-card milk-sold">
                                     <div className="card-header">
-                                        <h3>دودھ فروخت</h3>
-                                        <div className="card-icon">📦</div>
+                                        
+                                        <div className="card-icon"><Milk size={24} /></div>
                                     </div>
                                     <div className="card-content">
                                         <div className="main-value">{monthlyReport.reportData.totalMilkSold.toFixed(1)}</div>
-                                        <div className="unit">لیٹر</div>
+                                        <div className="unit">لیٹر<h3>دودھ فروخت</h3></div>
                                     </div>
                                 </div>
 
                                 <div className="summary-card yogurt-sold">
                                     <div className="card-header">
-                                        <h3>دہی فروخت</h3>
-                                        <div className="card-icon">📦</div>
+                                        {/* <h3>دہی فروخت</h3> */}
+                                        <div className="card-icon"><Milk size={24} /></div>
                                     </div>
                                     <div className="card-content">
                                         <div className="main-value">{monthlyReport.reportData.totalYogurtSold.toFixed(1)}</div>
-                                        <div className="unit">کلو</div>
+                                        <div className="unit">کلو<h3>دہی فروخت</h3>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div className="summary-card total-revenue">
                                     <div className="card-header">
-                                        <h3>کل آمدنی</h3>
-                                        <div className="card-icon">💰</div>
+                                      
+                                        <div className="card-icon"><DollarSign size={24} /></div>
                                     </div>
                                     <div className="card-content">
                                         <div className="main-value">Rs. {monthlyReport.reportData.totalRevenue.toFixed(0)}</div>
-                                        <div className="unit">روپے</div>
+                                        <div className="unit">روپے   <h3>کل آمدنی</h3></div>
                                     </div>
                                 </div>
 
                                 <div className={`summary-card outstanding-amount ${monthlyReport.reportData.outstandingAmount < 0 ? 'credit-balance' : 'debt-balance'}`}>
                                     <div className="card-header">
-                                        <h3>باقایا رقم</h3>
+
                                         <div className="card-icon">{monthlyReport.reportData.outstandingAmount < 0 ? '✅' : '⚠️'}</div>
                                     </div>
                                     <div className="card-content">
@@ -5535,6 +5637,10 @@ const Home = () => {
                                                     <td><strong>{monthlyReport.reportData.totalMilkSold.toFixed(1)}</strong></td>
                                                     <td><strong>{monthlyReport.reportData.totalYogurtSold.toFixed(1)}</strong></td>
                                                     <td><strong>Rs. {monthlyReport.reportData.totalRevenue.toFixed(0)}</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <td colSpan="3"><strong>موصولہ رقم </strong></td>
+                                                    <td><strong>Rs. {monthlyReport.reportData.paymentsReceivedNextMonthForCurrentMonthSales.toFixed(0)}</strong></td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -5949,7 +6055,7 @@ const Home = () => {
                                     </div>
                                 </div>
 
-                                <div className="summary-card total-revenue-card">
+                                {/* <div className="summary-card total-revenue-card">
                                     <div className="card-icon">
                                         <PaymentIcon fontSize="large" />
                                     </div>
@@ -5958,7 +6064,7 @@ const Home = () => {
                                         <div className="main-value">Rs. {paymentSummary.totalRevenue.toFixed(0)}</div>
                                         <div className="sub-value">تمام بلز کی رقم</div>
                                     </div>
-                                </div>
+                                </div> */}
 
                                 <div className="summary-card payments-received-card">
                                     <div className="card-icon">
