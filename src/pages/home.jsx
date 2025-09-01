@@ -2178,19 +2178,59 @@ const Home = () => {
             setLoading(false);
         }
     };
+    // Helper function to find the most recent monthly rate for a customer
+    const findMostRecentMonthlyRate = (customerId, targetMonth, targetYear) => {
+        if (!rates.monthlyRates) return null;
+        
+        let mostRecentRate = null;
+        let mostRecentDate = null;
+        
+        // Search through all monthly rates for this customer
+        Object.keys(rates.monthlyRates).forEach(key => {
+            const [rateCustomerId, rateYear, rateMonth] = key.split('_');
+            
+            if (rateCustomerId === customerId) {
+                const rateDate = new Date(parseInt(rateYear), parseInt(rateMonth), 1);
+                const targetDate = new Date(targetYear, targetMonth, 1);
+                
+                // Only consider rates from current month or earlier
+                if (rateDate <= targetDate) {
+                    const rate = rates.monthlyRates[key];
+                    
+                    // Check if this rate has valid values
+                    if (rate &&
+                        typeof rate.milkRate === 'number' && rate.milkRate > 0 &&
+                        typeof rate.yogurtRate === 'number' && rate.yogurtRate > 0) {
+                        
+                        // If this is the most recent valid rate we've found, use it
+                        if (!mostRecentDate || rateDate > mostRecentDate) {
+                            mostRecentRate = rate;
+                            mostRecentDate = rateDate;
+                        }
+                    }
+                }
+            }
+        });
+        
+        return mostRecentRate;
+    };
+
     // Add this function to get rates for a specific month
     const getMonthlyRates = (customerId, month, year) => {
         const key = `${customerId}_${year}_${month}`;
         // Ensure rates.monthlyRates is always an object
         if (!rates.monthlyRates) return null;
+        
+        // First, try to get rates for the specific month
         const monthlyRate = rates.monthlyRates[key];
-        // Only return monthly rates if they have valid values (not null, undefined, or 0)
         if (monthlyRate &&
             typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
             typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
             return monthlyRate;
         }
-        return null;
+        
+        // If no rates found for current month, find the most recent monthly rate
+        return findMostRecentMonthlyRate(customerId, month, year);
     };
     const deleteAdvancePayment = async (paymentId) => {
         if (!paymentId) return;
