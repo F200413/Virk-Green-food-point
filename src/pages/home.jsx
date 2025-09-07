@@ -3576,6 +3576,62 @@ const Home = () => {
     const customSelectedCustomerTotals = calculateTotals(selectedCustomerPurchases);
     const selectedCustomerBalance = customSelectedCustomerTotals.amount - selectedCustomerAdvanceTotal;
 
+    // Calculate values using printA4 function logic for consistency
+    const getPrintA4Values = () => {
+        if (!selectedCustomer) return { grandTotal: 0, totalAdvancePayments: 0, remainingBalance: 0 };
+        
+        const customer = selectedCustomerInfo;
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        // Get monthly purchases for current month
+        const monthlyPurchases = filterPurchasesByMonth(customer.id, currentMonth, currentYear);
+        const monthlyTotals = calculateTotals(monthlyPurchases);
+        
+        // Calculate total milk and yogurt for current month
+        const monthlyRates = getMonthlyRates(customer.id, currentMonth, currentYear);
+        const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+        const milkTotal = Math.round(monthlyTotals.milk * milkRate);
+        const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
+        const thisMonthTotal = milkTotal + yogurtTotal;
+        
+        // Calculate previous balance - all months before current month
+        let previousBalance = 0;
+        for (let m = 0; m < currentMonth; m++) {
+            const prevMonthPurchases = filterPurchasesByMonth(customer.id, m, currentYear);
+            if (prevMonthPurchases.length === 0) continue;
+            
+            const prevMonthTotals = calculateTotals(prevMonthPurchases);
+            const prevMonthRates = getMonthlyRates(customer.id, m, currentYear);
+            const milkRate = prevMonthRates ? prevMonthRates.milkRate : (customer.customMilkRate || rates.milk);
+            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+            const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
+            const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
+            const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
+            
+            previousBalance += prevMonthTotal;
+        }
+        
+        // Get all advance payments up to end of current month
+        const endOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+        const allAdvancePayments = advancePayments.filter(payment => {
+            if (payment.customerId !== customer.id) return false;
+            const paymentDate = payment.date instanceof Date ? payment.date : new Date(payment.date);
+            return paymentDate <= endOfCurrentMonth;
+        });
+        
+        const totalAdvancePayments = allAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+        const grandTotal = thisMonthTotal + previousBalance;
+        const remainingBalance = grandTotal - totalAdvancePayments;
+        
+        return { grandTotal, totalAdvancePayments, remainingBalance };
+    };
+    
+    const printA4Values = getPrintA4Values();
+    
+
     // Event handlers
     const handleCustomerFormSubmit = (e) => {
         e.preventDefault();
@@ -5724,8 +5780,7 @@ const Home = () => {
                                             >
                                                 <h3>{customer.name}</h3>
                                                 <p>Phone: {customer.phone || 'N/A'}</p>
-                                                <p>Total Purchases: Rs.{(totalAmount !== undefined ? totalAmount.toFixed(2) : '0.00')}</p>
-                                            </div>
+                                                  </div>
                                         );
                                     })}
                                 </div>
@@ -5778,17 +5833,17 @@ const Home = () => {
 
                                                 <div className="total-item total-amount" style={{ gridColumn: 'span 2', borderTop: '1px dashed #ddd', paddingTop: '10px', marginTop: '5px' }}>
                                                     <span className="total-label">Total Amount:</span>
-                                                    <span className="total-value">Rs. {(customSelectedCustomerTotals.amount !== undefined ? customSelectedCustomerTotals.amount.toFixed(2) : '0.00')}</span>
+                                                    <span className="total-value">Rs. {(printA4Values.grandTotal !== undefined ? printA4Values.grandTotal.toFixed(2) : '0.00')}</span>
                                                 </div>
                                                 <div className="total-item total-payments">
                                                     <span className="total-label">Total Payments:</span>
-                                                    <span className="total-value">Rs. {(selectedCustomerAdvanceTotal !== undefined ? selectedCustomerAdvanceTotal.toFixed(2) : '0.00')}</span>
+                                                    <span className="total-value">Rs. {(printA4Values.totalAdvancePayments !== undefined ? printA4Values.totalAdvancePayments.toFixed(2) : '0.00')}</span>
                                                 </div>
                                                 <div className="total-item total-remaining" style={{ gridColumn: 'span 2' }}>
                                                     <span className="total-label">Remaining Balance:</span>
-                                                    <span className={`total-value ${selectedCustomerBalance > 0 ? 'balance-due' : 'balance-credit'}`}>
-                                                        Rs. {(selectedCustomerBalance !== undefined ? Math.abs(selectedCustomerBalance).toFixed(2) : '0.00')}
-                                                        {selectedCustomerBalance > 0 ? ' (Due)' : ' (Credit)'}
+                                                    <span className={`total-value ${printA4Values.remainingBalance > 0 ? 'balance-due' : 'balance-credit'}`}>
+                                                        Rs. {(printA4Values.remainingBalance !== undefined ? Math.abs(printA4Values.remainingBalance).toFixed(2) : '0.00')}
+                                                        {printA4Values.remainingBalance > 0 ? ' (Due)' : ' (Credit)'}
                                                     </span>
                                                 </div>
                                             </div>
