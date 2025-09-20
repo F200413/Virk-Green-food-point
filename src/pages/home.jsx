@@ -53,9 +53,7 @@ const Home = () => {
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
-        address: '',
-        customMilkRate: rates.milk, // Default to global rate
-        customYogurtRate: rates.yogurt // Default to global rate
+        address: ''
     });
     const [purchaseFormData, setPurchaseFormData] = useState({
         milk: 0,
@@ -109,6 +107,12 @@ const Home = () => {
         milkRate: 0,
         yogurtRate: 0
     });
+    const [pendingPurchase, setPendingPurchase] = useState(null);
+    
+    // Debounced search terms
+    const [debouncedCustomerSearchTerm, setDebouncedCustomerSearchTerm] = useState('');
+    const [debouncedCustomerListSearchTerm, setDebouncedCustomerListSearchTerm] = useState('');
+    const [debouncedCustomerSearchForAdvance, setDebouncedCustomerSearchForAdvance] = useState('');
 
     // Monthly Report State
     const [monthlyReport, setMonthlyReport] = useState({
@@ -1638,6 +1642,62 @@ const Home = () => {
         }
     }, [purchases, customers, advancePayments]);
 
+    // Debounce search terms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedCustomerSearchTerm(customerSearchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [customerSearchTerm]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedCustomerListSearchTerm(customerListSearchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [customerListSearchTerm]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedCustomerSearchForAdvance(customerSearchForAdvance);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [customerSearchForAdvance]);
+
+    // Function to determine if a section should be loaded
+    const shouldLoadSection = (sectionId) => {
+        // Always load these sections
+        const alwaysLoadSections = ['billing', 'customers', 'purchaseList'];
+        
+        if (alwaysLoadSections.includes(sectionId)) {
+            return true;
+        }
+        
+        // Load other sections only when active
+        return activeSection === sectionId;
+    };
+
+    // Function to validate and protect monthly rates from being overwritten
+    const validateMonthlyRateUpdate = (customerId, month, year, newRates) => {
+        const existingRates = getMonthlyRates(customerId, month, year);
+        
+        if (existingRates) {
+            // Check if rates are being changed
+            const ratesChanged = 
+                existingRates.milkRate !== newRates.milkRate || 
+                existingRates.yogurtRate !== newRates.yogurtRate;
+            
+            if (ratesChanged) {
+                const password = prompt('مہینہ وار ریٹس کو تبدیل کرنے کے لیے پاس ورڈ درج کریں:');
+                if (password !== 'admin123') { // Change this to your desired password
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    };
+
     // Add this useEffect to monitor selectedCustomer changes
     useEffect(() => {
         if (selectedCustomer) {
@@ -1772,21 +1832,12 @@ const Home = () => {
     const addCustomer = async () => {
         setLoading(true);
         try {
-            // Ensure custom rates are numbers
-            const customerData = {
-                ...formData,
-                customMilkRate: parseFloat(formData.customMilkRate) || rates.milk,
-                customYogurtRate: parseFloat(formData.customYogurtRate) || rates.yogurt
-            };
-
             const customersCollection = collection(firestore, 'customers');
-            await addDoc(customersCollection, customerData);
+            await addDoc(customersCollection, formData);
             setFormData({
                 name: '',
                 phone: '',
-                address: '',
-                customMilkRate: rates.milk,
-                customYogurtRate: rates.yogurt
+                address: ''
             });
             closeModal('customerModal');
             fetchCustomers();
@@ -1802,44 +1853,17 @@ const Home = () => {
     const updateCustomer = async () => {
         setLoading(true);
         try {
-            // Ensure custom rates are numbers
-            const customerData = {
-                ...formData,
-                customMilkRate: parseFloat(formData.customMilkRate) || rates.milk,
-                customYogurtRate: parseFloat(formData.customYogurtRate) || rates.yogurt
-            };
-
             const customerDoc = doc(firestore, 'customers', selectedCustomer);
-            await updateDoc(customerDoc, customerData);
+            await updateDoc(customerDoc, formData);
             setFormData({
                 name: '',
                 phone: '',
-                address: '',
-                customMilkRate: rates.milk,
-                customYogurtRate: rates.yogurt
+                address: ''
             });
             closeModal('customerModal');
             fetchCustomers();
             setSuccessMessage('گاہک کی معلومات کامیابی سے اپڈیٹ ہو گئیں');
             setShowSuccessPopup(true);
-
-            // Refresh the customer info and daily purchases display if this is the currently selected customer
-            if (selectedCustomer) {
-                // This will trigger a re-render with updated rates for the currently viewed customer
-                const updatedCustomerInfo = { ...customerData, id: selectedCustomer };
-                const customer = customers.find(c => c.id === selectedCustomer);
-                if (customer) {
-                    // Only update if the rates actually changed
-                    if (customer.customMilkRate !== customerData.customMilkRate ||
-                        customer.customYogurtRate !== customerData.customYogurtRate) {
-                        // Refresh daily purchases display if there's a selected date
-                        if (selectedDate) {
-                            const filtered = filterPurchasesByDate(selectedDate);
-                            setDailyPurchases(filtered);
-                        }
-                    }
-                }
-            }
         } catch (error) {
             console.error("Error updating customer: ", error);
         } finally {
@@ -1906,18 +1930,44 @@ const Home = () => {
             const milkQty = parseFloat(purchaseFormData.milk) || 0;
             const yogurtQty = parseFloat(purchaseFormData.yogurt) || 0;
 
-
-
-            // Get rates using proper hierarchy: Monthly Rates → Customer Custom Rates → Global Rates
+            // Check if customer has monthly rates set for this month
             const customer = customers.find(c => c.id === selectedCustomer);
             const purchaseMonth = selectedDate.getMonth();
             const purchaseYear = selectedDate.getFullYear();
             const monthlyRates = getMonthlyRates(selectedCustomer, purchaseMonth, purchaseYear);
             
-            const milkRate = monthlyRates ? monthlyRates.milkRate : 
-                (customer?.customMilkRate || rates.milk);
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
-                (customer?.customYogurtRate || rates.yogurt);
+            // If no monthly rates are set, prompt user to set them
+            if (!monthlyRates) {
+                setLoading(false);
+                setSuccessMessage(`براہ کرم پہلے ${customer?.name} کے لیے ${purchaseMonth + 1}/${purchaseYear} کا مہینہ وار ریٹ سیٹ کریں`);
+                setShowSuccessPopup(true);
+                
+                // Store the pending purchase data
+                setPendingPurchase({
+                    milkQty,
+                    yogurtQty,
+                    customerId: selectedCustomer,
+                    purchaseMonth,
+                    purchaseYear
+                });
+                
+                // Open monthly rates modal for this customer and month
+                setMonthlyRateForm({
+                    customerId: selectedCustomer,
+                    month: purchaseMonth,
+                    year: purchaseYear,
+                    milkRate: rates.milk,
+                    yogurtRate: rates.yogurt
+                });
+                const modal = document.getElementById('monthlyRatesModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                }
+                return;
+            }
+            
+            const milkRate = monthlyRates.milkRate;
+            const yogurtRate = monthlyRates.yogurtRate;
 
             // Use the selected date for the purchase, but keep current time
             const purchaseDate = new Date(selectedDate);
@@ -2212,6 +2262,16 @@ const Home = () => {
             }
         });
         
+        // Debug logging to help identify the issue
+        if (mostRecentRate) {
+            console.log(`Found most recent monthly rate for customer ${customerId}:`, {
+                rate: mostRecentRate,
+                date: mostRecentDate,
+                targetMonth: targetMonth,
+                targetYear: targetYear
+            });
+        }
+        
         return mostRecentRate;
     };
 
@@ -2226,10 +2286,12 @@ const Home = () => {
         if (monthlyRate &&
             typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
             typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
+            console.log(`Using specific monthly rate for customer ${customerId}, month ${month}, year ${year}:`, monthlyRate);
             return monthlyRate;
         }
         
         // If no rates found for current month, find the most recent monthly rate
+        console.log(`No specific monthly rate found for customer ${customerId}, month ${month}, year ${year}. Looking for most recent rate...`);
         return findMostRecentMonthlyRate(customerId, month, year);
     };
     const deleteAdvancePayment = async (paymentId) => {
@@ -2277,14 +2339,12 @@ const Home = () => {
                 setFormData({
                     name: customer.name,
                     phone: customer.phone || '',
-                    address: customer.address || '',
-                    customMilkRate: customer.customMilkRate || rates.milk,
-                    customYogurtRate: customer.customYogurtRate || rates.yogurt
+                    address: customer.address || ''
                 });
                 setSelectedCustomer(customerId);
             }
         } else {
-            setFormData({ name: '', phone: '', address: '', customMilkRate: rates.milk, customYogurtRate: rates.yogurt });
+            setFormData({ name: '', phone: '', address: '' });
             setSelectedCustomer(null);
         }
         document.getElementById('customerModal').style.display = 'block';
@@ -2879,9 +2939,14 @@ const Home = () => {
         // Create a bill number
         const billNumber = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
 
-        // Calculate total milk and yogurt
-        const milkTotal = Math.round(monthlyTotals.milk * (customer.customMilkRate || rates.milk));
-        const yogurtTotal = Math.round(monthlyTotals.yogurt * (customer.customYogurtRate || rates.yogurt));
+        // Calculate total milk and yogurt using monthly rates or global rates
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        const monthlyRates = getMonthlyRates(customer.id, currentMonth, currentYear);
+        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+        const milkTotal = Math.round(monthlyTotals.milk * milkRate);
+        const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const grandTotal = milkTotal + yogurtTotal;
 
         // Get all previous months' balance
@@ -3007,14 +3072,14 @@ const Home = () => {
                             <tr>
                                 <td>دودھ</td>
                                 <td>${Math.round(monthlyTotals.milk)}</td>
-                                <td>${customer.customMilkRate || rates.milk}</td>
+                                <td>${milkRate}</td>
                                 <td>${milkTotal}</td>
                             </tr>` : ''}
                             ${monthlyTotals.yogurt > 0 ? `
                             <tr>
                                 <td>دہی</td>
                                 <td>${Math.round(monthlyTotals.yogurt)}</td>
-                                <td>${customer.customYogurtRate || rates.yogurt}</td>
+                                <td>${yogurtRate}</td>
                                 <td>${yogurtTotal}</td>
                             </tr>` : ''}
                             <tr>
@@ -3408,9 +3473,9 @@ const Home = () => {
     // Filter functions
     const filteredCustomers = customers
         .filter(customer =>
-            customer.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
-            (customer.phone && customer.phone.includes(customerSearchTerm)) ||
-            (customer.address && customer.address.toLowerCase().includes(customerSearchTerm))
+            customer.name.toLowerCase().includes(debouncedCustomerSearchTerm.toLowerCase()) ||
+            (customer.phone && customer.phone.includes(debouncedCustomerSearchTerm)) ||
+            (customer.address && customer.address.toLowerCase().includes(debouncedCustomerSearchTerm))
         )
         .sort((a, b) => {
             // Find all numbers in the name and get the last one
@@ -3436,7 +3501,7 @@ const Home = () => {
 
     const filteredCustomersList = customers
         .filter(customer =>
-            customer.name.toLowerCase().includes(customerListSearchTerm.toLowerCase())
+            customer.name.toLowerCase().includes(debouncedCustomerListSearchTerm.toLowerCase())
         )
         .sort((a, b) => {
             // Find all numbers in the name and get the last one
@@ -3498,11 +3563,9 @@ const Home = () => {
             // Try to get monthly rates first
             const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
 
-            // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-            const milkRate = monthlyRates ? monthlyRates.milkRate :
-                (purchase.customMilkRate || rates.milk);
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
-                (purchase.customYogurtRate || rates.yogurt);
+            // Use monthly rates if available, otherwise fall back to global rates
+            const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
             const milkAmount = (parseFloat(purchase.milk) || 0) * milkRate;
             const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * yogurtRate;
@@ -3591,8 +3654,8 @@ const Home = () => {
         
         // Calculate total milk and yogurt for current month
         const monthlyRates = getMonthlyRates(customer.id, currentMonth, currentYear);
-        const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
@@ -3605,8 +3668,8 @@ const Home = () => {
             
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
             const prevMonthRates = getMonthlyRates(customer.id, m, currentYear);
-            const milkRate = prevMonthRates ? prevMonthRates.milkRate : (customer.customMilkRate || rates.milk);
-            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+            const milkRate = prevMonthRates ? prevMonthRates.milkRate : rates.milk;
+            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : rates.yogurt;
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
             const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
             const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
@@ -3900,10 +3963,8 @@ const Home = () => {
                 const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
 
                 // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-                const milkRate = monthlyRates ? monthlyRates.milkRate :
-                    (selectedCustomerInfo.customMilkRate || rates.milk);
-                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
-                    (selectedCustomerInfo.customYogurtRate || rates.yogurt);
+                const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
                 // Calculate the total amount using the rates
                 const calculatedAmount = (totals.milk * milkRate) + (totals.yogurt * yogurtRate);
@@ -4049,10 +4110,8 @@ const Home = () => {
                 const customer = customerStats[customerId].customerInfo;
                 const monthlyRates = getMonthlyRates(customerId, month, year);
                 
-                const milkRate = monthlyRates ? monthlyRates.milkRate : 
-                    (customer?.customMilkRate || rates.milk);
-                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 
-                    (customer?.customYogurtRate || rates.yogurt);
+                const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
                 customerStats[customerId].amount +=
                     (parseFloat(purchase.milk) || 0) * milkRate +
@@ -4154,8 +4213,8 @@ const Home = () => {
 
         // Calculate total milk and yogurt
         const monthlyRates = getMonthlyRates(customer.id, selectedMonth, selectedYear);
-        const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
@@ -4172,8 +4231,8 @@ const Home = () => {
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
             const prevMonthRates = getMonthlyRates(customer.id, m, selectedYear);
-            const milkRate = prevMonthRates ? prevMonthRates.milkRate : (customer.customMilkRate || rates.milk);
-            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+            const milkRate = prevMonthRates ? prevMonthRates.milkRate : rates.milk;
+            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : rates.yogurt;
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
             const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
             const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
@@ -4568,8 +4627,8 @@ const Home = () => {
             // Get monthly purchases for this month
             const monthlyPurchases = filterPurchasesByMonth(customer.id, month, selectedYear);
             const monthlyRates = getMonthlyRates(customer.id, month, selectedYear);
-            const milkRate = monthlyRates ? monthlyRates.milkRate : (customer.customMilkRate || rates.milk);
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer.customYogurtRate || rates.yogurt);
+            const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
 
             // Skip months with no activity unless there's a previous balance
@@ -4869,11 +4928,9 @@ const Home = () => {
         // Try to get monthly rates first
         const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
 
-        // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-        const milkRate = monthlyRates ? monthlyRates.milkRate :
-            (purchase.customMilkRate || rates.milk);
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate :
-            (purchase.customYogurtRate || rates.yogurt);
+        // Use monthly rates if available, otherwise fall back to global rates
+        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
         return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
     };
@@ -4894,8 +4951,8 @@ const Home = () => {
             customerId,
             month: currentMonth,
             year: currentYear,
-            milkRate: monthlyRates ? monthlyRates.milkRate : (customer?.customMilkRate || rates.milk),
-            yogurtRate: monthlyRates ? monthlyRates.yogurtRate : (customer?.customYogurtRate || rates.yogurt)
+            milkRate: monthlyRates ? monthlyRates.milkRate : rates.milk,
+            yogurtRate: monthlyRates ? monthlyRates.yogurtRate : rates.yogurt
         });
         const modal = document.getElementById('monthlyRatesModal');
         if (modal) {
@@ -4912,8 +4969,8 @@ const Home = () => {
             const monthlyRates = getMonthlyRates(updatedForm.customerId, updatedForm.month, updatedForm.year);
             const customer = customers.find(c => c.id === updatedForm.customerId);
             
-            updatedForm.milkRate = monthlyRates ? monthlyRates.milkRate : (customer?.customMilkRate || rates.milk);
-            updatedForm.yogurtRate = monthlyRates ? monthlyRates.yogurtRate : (customer?.customYogurtRate || rates.yogurt);
+            updatedForm.milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+            updatedForm.yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
         }
         
         setMonthlyRateForm(updatedForm);
@@ -4925,12 +4982,26 @@ const Home = () => {
         updateMonthlyRates();
     };
 
-    // Add this function to update monthly rates
+    // Add this function to update monthly rates with password protection
     const updateMonthlyRates = async () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
             const key = `${monthlyRateForm.customerId}_${monthlyRateForm.year}_${monthlyRateForm.month}`;
+            
+            // Validate and protect monthly rates from being overwritten
+            const newRates = {
+                milkRate: parseFloat(monthlyRateForm.milkRate),
+                yogurtRate: parseFloat(monthlyRateForm.yogurtRate)
+            };
+            
+            if (!validateMonthlyRateUpdate(monthlyRateForm.customerId, monthlyRateForm.month, monthlyRateForm.year, newRates)) {
+                setLoading(false);
+                setSuccessMessage('غلط پاس ورڈ! مہینہ وار ریٹس اپڈیٹ نہیں ہو سکے');
+                setShowSuccessPopup(true);
+                return;
+            }
+            
             const updatedRates = {
                 ...rates,
                 monthlyRates: {
@@ -4941,13 +5012,99 @@ const Home = () => {
                     }
                 }
             };
+            
+            console.log(`Saving monthly rates for customer ${monthlyRateForm.customerId}, month ${monthlyRateForm.month}, year ${monthlyRateForm.year}:`, {
+                key: key,
+                rates: updatedRates.monthlyRates[key]
+            });
+            
             await setDoc(ratesDoc, updatedRates);
             setRates(updatedRates);
             closeModal('monthlyRatesModal');
             setSuccessMessage('مہینہ وار ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);
+            
+            // If there's a pending purchase, automatically retry it
+            if (pendingPurchase) {
+                setTimeout(() => {
+                    retryPendingPurchase();
+                }, 1000); // Wait 1 second for the rates to be updated in state
+            }
         } catch (error) {
             console.error("Error updating monthly rates: ", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Function to retry a pending purchase after monthly rates are set
+    const retryPendingPurchase = async () => {
+        if (!pendingPurchase) return;
+        
+        setLoading(true);
+        try {
+            const { milkQty, yogurtQty, customerId, purchaseMonth, purchaseYear } = pendingPurchase;
+            
+            // Get the updated monthly rates
+            const monthlyRates = getMonthlyRates(customerId, purchaseMonth, purchaseYear);
+            
+            if (!monthlyRates) {
+                setSuccessMessage('مہینہ وار ریٹس ابھی بھی سیٹ نہیں ہوئے ہیں');
+                setShowSuccessPopup(true);
+                return;
+            }
+            
+            const milkRate = monthlyRates.milkRate;
+            const yogurtRate = monthlyRates.yogurtRate;
+
+            // Use the selected date for the purchase, but keep current time
+            const purchaseDate = new Date(selectedDate);
+            purchaseDate.setHours(new Date().getHours());
+            purchaseDate.setMinutes(new Date().getMinutes());
+            purchaseDate.setSeconds(new Date().getSeconds());
+
+            const purchaseData = {
+                customerId: customerId,
+                milk: milkQty,
+                yogurt: yogurtQty,
+                milkRate: milkRate,
+                yogurtRate: yogurtRate,
+                total: (milkQty * milkRate) + (yogurtQty * yogurtRate),
+                date: Timestamp.fromDate(purchaseDate)
+            };
+
+            // Add to Firestore
+            const purchasesCollection = collection(firestore, 'purchases');
+            const docRef = await addDoc(purchasesCollection, purchaseData);
+
+            // Update local state immediately
+            const newPurchase = {
+                id: docRef.id,
+                ...purchaseData,
+                date: purchaseDate.toISOString() // Convert to ISO string to match the format
+            };
+
+            // Update purchases state
+            setPurchases(prevPurchases => [...prevPurchases, newPurchase]);
+
+            // Update daily purchases
+            setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, newPurchase]);
+
+            setPurchaseFormData({ milk: 0, yogurt: 0 });
+            closeModal('purchaseModal');
+
+            setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
+            setShowSuccessPopup(true);
+
+            // Clear pending purchase
+            setPendingPurchase(null);
+
+            // Fetch fresh data to ensure everything is in sync
+            await fetchPurchases();
+        } catch (error) {
+            console.error("Error retrying purchase: ", error);
+            setSuccessMessage('پرچز شامل کرنے میں خرابی');
+            setShowSuccessPopup(true);
         } finally {
             setLoading(false);
         }
@@ -5093,6 +5250,7 @@ const Home = () => {
             <div className="main-content">
                 <main>
                     {/* Dashboard Section */}
+                    {shouldLoadSection('dashboard') && (
                     <section id="dashboard" className={activeSection === 'dashboard' ? 'active' : ''}>
                         <h2>ڈیش بورڈ</h2>
                         <div className="dashboard-container">
@@ -5181,6 +5339,7 @@ const Home = () => {
                             </div>
                         </div>
                     </section>
+                    )}
 
                     {/* Customers Section */}
                     <section id="customers" className={activeSection === 'customers' ? 'active' : ''}>
@@ -5448,6 +5607,7 @@ const Home = () => {
                     </section>
 
                     {/* History Section */}
+                    {shouldLoadSection('history') && (
                     <section id="history" className={activeSection === 'history' ? 'active' : ''}>
                         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2>بل کی تاریخ</h2>
@@ -5484,8 +5644,10 @@ const Home = () => {
                             </table>
                         </div>
                     </section>
+                    )}
 
                     {/* Settings Section */}
+                    {shouldLoadSection('settings') && (
                     <section id="settings" className={activeSection === 'settings' ? 'active' : ''}>
                         <h2>ریٹ اور انوینٹری کی ترتیبات</h2>
 
@@ -5521,10 +5683,12 @@ const Home = () => {
                         </form>
 
                     </section>
+                    )}
                     {/* Settings Section */}
 
 
                     {/* Suppliers Section */}
+                    {shouldLoadSection('suppliers') && (
                     <section id="suppliers" className={activeSection === 'suppliers' ? 'active' : ''}>
                         <div className="supplier-header">
                             <h2>سپلائرز کی فہرست</h2>
@@ -5599,8 +5763,10 @@ const Home = () => {
                             )}
                         </div>
                     </section>
+                    )}
 
                     {/* Monthly Report Section */}
+                    {shouldLoadSection('monthlyReport') && (
                     <section id="monthlyReport" className={activeSection === 'monthlyReport' ? 'active' : ''}>
                         <div className="monthly-report-header">
                             <h2>ماہانہ رپورٹ - دودھ اور دہی</h2>
@@ -5749,6 +5915,7 @@ const Home = () => {
                             </div>
                         </div>
                     </section>
+                    )}
 
                     {/* Purchase List Section */}
                     <section id="purchaseList" className={activeSection === 'purchaseList' ? 'active' : ''}>
@@ -6070,6 +6237,7 @@ const Home = () => {
 
 
                     {/* Advance Payments Section */}
+                    {shouldLoadSection('advancePayments') && (
                     <section id="advancePayments" className={activeSection === 'advancePayments' ? 'active' : ''}>
                         <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h2>ایڈوانس پیمنٹس</h2>
@@ -6129,8 +6297,10 @@ const Home = () => {
                             </table>
                         </div>
                     </section>
+                    )}
 
                     {/* Payment Summary Section */}
+                    {shouldLoadSection('paymentSummary') && (
                     <section id="paymentSummary" className={activeSection === 'paymentSummary' ? 'active' : ''}>
                         <div className="payment-summary-header">
                             <h2>پیمنٹ کی مکمل رپورٹ</h2>
@@ -6250,6 +6420,7 @@ const Home = () => {
                             </div>
                         </div>
                     </section>
+                    )}
                 </main>
 
                 {/* Customer Modal */}
@@ -6292,43 +6463,6 @@ const Home = () => {
                                 ></textarea>
                             </div>
 
-                            <div style={{
-                                padding: '15px',
-                                marginTop: '15px',
-                                backgroundColor: '#f0f8ff',
-                                borderRadius: '5px',
-                                marginBottom: '15px'
-                            }}>
-                                <h4 style={{ marginBottom: '10px' }}>کسٹم ریٹس</h4>
-                                <div className="form-group">
-                                    <label htmlFor="customMilkRate">دودھ کا ریٹ (روپے/لیٹر):</label>
-                                    <input
-                                        type="number"
-                                        id="customMilkRate"
-                                        name="customMilkRate"
-                                        min="0"
-                                        step="any"
-                                        value={formData.customMilkRate}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        disabled={loading}
-                                    />
-
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="customYogurtRate">دہی کا ریٹ (روپے/کلو):</label>
-                                    <input
-                                        type="number"
-                                        id="customYogurtRate"
-                                        name="customYogurtRate"
-                                        min="0"
-                                        step="any"
-                                        value={formData.customYogurtRate}
-                                        onChange={(e) => handleInputChange(e, setFormData, formData)}
-                                        disabled={loading}
-                                    />
-
-                                </div>
-                            </div>
 
                             <button type="submit" disabled={loading} className="button-with-spinner">
                                 {modalMode === 'edit' ? 'گاہک کو اپڈیٹ کریں' : 'گاہک محفوظ کریں'}
@@ -6403,10 +6537,12 @@ const Home = () => {
                                         // Handle normal input change
                                         handleInputChange(e, setPurchaseFormData, purchaseFormData);
 
-                                        // Calculate milk amount based on quantity
-                                        const milkRate = selectedCustomerInfo && selectedCustomerInfo.customMilkRate
-                                            ? parseFloat(selectedCustomerInfo.customMilkRate)
-                                            : rates.milk;
+                                        // Calculate milk amount based on quantity using monthly rates
+                                        const currentDate = new Date();
+                                        const currentMonth = currentDate.getMonth();
+                                        const currentYear = currentDate.getFullYear();
+                                        const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
+                                        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
 
                                         // Update corresponding amount field
                                         document.getElementById('milkAmount').value = (qty * milkRate).toFixed(2);
@@ -6428,10 +6564,12 @@ const Home = () => {
                                         // Handle normal input change
                                         handleInputChange(e, setPurchaseFormData, purchaseFormData);
 
-                                        // Calculate yogurt amount based on quantity
-                                        const yogurtRate = selectedCustomerInfo && selectedCustomerInfo.customYogurtRate
-                                            ? parseFloat(selectedCustomerInfo.customYogurtRate)
-                                            : rates.yogurt;
+                                        // Calculate yogurt amount based on quantity using monthly rates
+                                        const currentDate = new Date();
+                                        const currentMonth = currentDate.getMonth();
+                                        const currentYear = currentDate.getFullYear();
+                                        const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
+                                        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
                                         // Update corresponding amount field
                                         document.getElementById('yogurtAmount').value = (qty * yogurtRate).toFixed(2);
@@ -6629,10 +6767,10 @@ const Home = () => {
                                         />
 
                                         {/* Filtered customers search results */}
-                                        {customerSearchForAdvance && (
+                                        {debouncedCustomerSearchForAdvance && (
                                             <div className="search-results">
                                                 {customers
-                                                    .filter(c => c.name.toLowerCase().includes(customerSearchForAdvance.toLowerCase()))
+                                                    .filter(c => c.name.toLowerCase().includes(debouncedCustomerSearchForAdvance.toLowerCase()))
                                                     .map(customer => (
                                                         <div
                                                             key={customer.id}
@@ -6646,7 +6784,7 @@ const Home = () => {
                                                         </div>
                                                     ))
                                                 }
-                                                {customers.filter(c => c.name.toLowerCase().includes(customerSearchForAdvance.toLowerCase())).length === 0 && (
+                                                {customers.filter(c => c.name.toLowerCase().includes(debouncedCustomerSearchForAdvance.toLowerCase())).length === 0 && (
                                                     <div className="no-results">کوئی گاہک نہیں ملا</div>
                                                 )}
                                             </div>
@@ -7023,6 +7161,25 @@ const Home = () => {
                         fontWeight: 700,
                         letterSpacing: '0.5px',
                     }}>{modalMode === 'add' ? 'نیا مہینہ وار ریٹس شامل کریں' : 'مہینہ وار ریٹس میں ترمیم کریں'}</h2>
+                    
+                    {/* Warning message for existing rates */}
+                    {(() => {
+                        const existingRates = getMonthlyRates(monthlyRateForm.customerId, monthlyRateForm.month, monthlyRateForm.year);
+                        return existingRates ? (
+                            <div style={{
+                                backgroundColor: '#fff3cd',
+                                border: '1px solid #ffeaa7',
+                                borderRadius: '8px',
+                                padding: '0.8rem',
+                                marginBottom: '0.5rem',
+                                fontSize: '0.9rem',
+                                color: '#856404'
+                            }}>
+                                ⚠️ <strong>تنبیہ:</strong> اس گاہک کے لیے پہلے سے مہینہ وار ریٹس موجود ہیں۔ تبدیلی کے لیے پاس ورڈ درکار ہوگا۔
+                            </div>
+                        ) : null;
+                    })()}
+                    
                     <form id="monthlyRatesForm" onSubmit={handleMonthlyRateFormSubmit} style={{
                         display: 'flex',
                         flexDirection: 'column',
