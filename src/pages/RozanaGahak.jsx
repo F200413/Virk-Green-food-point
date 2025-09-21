@@ -394,6 +394,7 @@ const RozanaGahak = () => {
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
+            closeModal('billModal');
         }, 500);
     };
 
