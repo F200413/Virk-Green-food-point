@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import Login from './components/Login';
-import Home from './pages/home';
-import logo from './assets/im.jpg';
-import { AppBar, Toolbar, Typography, Button, Avatar, Box } from '@mui/material';
-import LogoutIcon from '@mui/icons-material/Logout';
+import Layout from './components/shared/Layout';
+import RozanaGahak from './pages/RozanaGahak';
+import RozanaGahakList from './pages/RozanaGahakList';
+import MahanaGahak from './pages/MahanaGahak';
+import RatePage from './pages/RatePage';
+import AdvancePayments from './pages/AdvancePayments';
+import Suppliers from './pages/Suppliers';
+import MonthlyReport from './pages/MonthlyReport';
+import PaymentSummary from './pages/PaymentSummary';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/MahanaGahakFehrist';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeSection, setActiveSection] = useState(() => {
+    return localStorage.getItem('activeSection') || 'billing';
+  });
   
   // Check if user is already logged in
   useEffect(() => {
@@ -17,57 +27,63 @@ function App() {
     }
   }, []);
 
+  // Save active section to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
+
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('isLoggedIn');
     setIsLoggedIn(false);
   };
 
+  // Handle section change
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+  };
+
   if (!isLoggedIn) {
     return <Login onLogin={setIsLoggedIn} />;
   }
 
+  // Render different components based on active section
+  const renderActiveSection = () => {
+    switch(activeSection) {
+      case 'billing':
+        return <RozanaGahak />;
+      case 'history':
+        return <RozanaGahakList />;
+      case 'customers':
+        return <MahanaGahak />;
+      case 'purchaseList':
+        return <Home />;
+      case 'settings':
+        return <RatePage />;
+      case 'advancePayments':
+        return <AdvancePayments />;
+      case 'suppliers':
+        return <Suppliers />;
+      case 'monthlyReport':
+        return <MonthlyReport />;
+      case 'paymentSummary':
+        return <PaymentSummary />;
+      case 'dashboard':
+        return <Dashboard />;
+      default:
+        return <RozanaGahak />;
+    }
+  };
+
   return (
     <div className="App">
-      <AppBar 
-        position="static" 
-        sx={{ 
-          mb: 2, 
-          bgcolor: '#2d6a4f',
-          borderRadius: 0,
-          boxShadow: 'none'
-        }}
+      <Layout 
+        onLogout={handleLogout}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
       >
-        <Toolbar>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-            <Avatar 
-              src={logo} 
-              alt="Green Food Point" 
-              sx={{ width: 50, height: 50, mr: 2 }}
-            />
-            <Typography 
-              variant="h5" 
-              component="div" 
-              sx={{ 
-                fontWeight: 'bold', 
-                fontSize: '1.5rem' 
-              }}
-            >
-              ورک گرین فوڈ پوائنٹ
-            </Typography>
-          </Box>
-          
-          <Button 
-            color="inherit" 
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-      
-      <Home />
+        {renderActiveSection()}
+      </Layout>
     </div>
   );
 }
