@@ -310,6 +310,27 @@ const Home = () => {
         }
     };
 
+    // Calendar tile content to show milk quantity under each date
+    const tileContent = ({ date, view }) => {
+        if (view !== 'month' || !selectedCustomer) return null;
+        const dailyTotals = calculateTotals(filterPurchasesByDate(date));
+        const milkTotal = dailyTotals.milk || 0;
+        if (milkTotal <= 0) return null;
+        return (
+            <div
+                className="calendar-tile-qty"
+                style={{
+                    marginTop: 4,
+                    fontSize: 11,
+                    color: '#ffffff',
+                    fontWeight: 600
+                }}
+            >
+                {milkTotal.toFixed(1)}L
+            </div>
+        );
+    };
+
     const handleDateChange = (date) => {
         setSelectedDate(date);
         const filtered = filterPurchasesByDate(date);
@@ -1229,6 +1250,7 @@ const Home = () => {
                                             onChange={handleDateChange}
                                             value={selectedDate}
                                             tileClassName={tileClassName}
+                                            tileContent={tileContent}
                                         />
 
                                         {/* Monthly Totals Summary */}

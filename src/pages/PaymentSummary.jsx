@@ -195,7 +195,7 @@ const PaymentSummary = () => {
                             </div>
                         </div>
 
-                        <div className="summary-card payments-received-card">
+                        {/* <div className="summary-card payments-received-card">
                             <div className="card-icon">
                                 <AccountBalanceIcon fontSize="large" />
                             </div>
@@ -204,7 +204,7 @@ const PaymentSummary = () => {
                                 <div className="main-value">Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</div>
                                 <div className="sub-value">جمع شدہ رقم</div>
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="summary-card outstanding-card">
                             <div className="card-icon">
@@ -244,11 +244,11 @@ const PaymentSummary = () => {
                                             <td>-</td>
                                         </tr>
                                  
-                                        <tr className="received-row">
+                                        {/* <tr className="received-row">
                                             <td><strong>پیمنٹ موصولہ</strong></td>
                                             <td>-</td>
                                             <td style={{ color: '#28a745' }}><strong>Rs. {paymentSummary.totalPaymentsReceived.toFixed(0)}</strong></td>
-                                        </tr>
+                                        </tr> */}
                                         <tr className="outstanding-row">
                                             <td><strong>باقی رقم</strong></td>
                                             <td>-</td>
