@@ -310,23 +310,31 @@ const Home = () => {
         }
     };
 
-    // Calendar tile content to show milk quantity under each date
+    // Calendar tile content to show milk and yogurt quantities under each date
     const tileContent = ({ date, view }) => {
         if (view !== 'month' || !selectedCustomer) return null;
         const dailyTotals = calculateTotals(filterPurchasesByDate(date));
         const milkTotal = dailyTotals.milk || 0;
-        if (milkTotal <= 0) return null;
+        const yogurtTotal = dailyTotals.yogurt || 0;
+        
+        if (milkTotal <= 0 && yogurtTotal <= 0) return null;
+        
         return (
             <div
                 className="calendar-tile-qty"
                 style={{
                     marginTop: 4,
-                    fontSize: 11,
+                    fontSize: 10,
                     color: '#ffffff',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    display: 'flex',
+                    gap: '4px',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
                 }}
             >
-                {milkTotal.toFixed(1)}L
+                {milkTotal > 0 && <span>{milkTotal.toFixed(1)}L</span>}
+                {yogurtTotal > 0 && <span>{yogurtTotal.toFixed(1)}K</span>}
             </div>
         );
     };
