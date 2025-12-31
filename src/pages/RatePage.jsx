@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { firestore } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { importMonthlyRatesFromFile } from '../utils/importMonthlyRates';
+import { importAbdullahRatesFromFile } from '../utils/importAbdullahRates';
+import { setCurrentMonthRatesFromLastPurchase } from '../utils/setNextMonthRates';
 
 const RatePage = () => {
     // State variables
@@ -10,6 +13,10 @@ const RatePage = () => {
         monthlyRates: {}
     });
     const [loading, setLoading] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importingAbdullah, setImportingAbdullah] = useState(false);
+    const [settingNextMonthRates, setSettingNextMonthRates] = useState(false);
+    const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
@@ -88,6 +95,106 @@ const RatePage = () => {
         updateRates();
     };
 
+    const handleImportRates = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            setSuccessMessage('براہ کرم صرف JSON فائل منتخب کریں');
+            setShowSuccessPopup(true);
+            return;
+        }
+
+        setImporting(true);
+        setImportProgress({ current: 0, total: 0 });
+
+        try {
+            const result = await importMonthlyRatesFromFile(file, (current, total) => {
+                setImportProgress({ current, total });
+            });
+
+            // Refresh rates after import
+            await fetchRates();
+
+            setSuccessMessage(
+                `کامیابی! ${result.importedRatesCount} مہینہ وار ریٹس ${result.totalCustomers} گاہکوں کے لیے درآمد ہو گئے`
+            );
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error importing rates: ", error);
+            setSuccessMessage('ریٹس درآمد کرنے میں خرابی: ' + error.message);
+            setShowSuccessPopup(true);
+        } finally {
+            setImporting(false);
+            setImportProgress({ current: 0, total: 0 });
+            // Reset file input
+            event.target.value = '';
+        }
+    };
+
+    const handleImportAbdullahRates = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            setSuccessMessage('براہ کرم صرف JSON فائل منتخب کریں');
+            setShowSuccessPopup(true);
+            return;
+        }
+
+        setImportingAbdullah(true);
+
+        try {
+            const result = await importAbdullahRatesFromFile(file);
+
+            // Refresh rates after import
+            await fetchRates();
+
+            const rateDetailsText = result.rateDetails.map(d => 
+                `${d.month} ${d.year}: دودھ=${d.milkRate}, دہی=${d.yogurtRate}`
+            ).join('\n');
+
+            setSuccessMessage(
+                `کامیابی! عبداللہ کے لیے ${result.importedRatesCount} مہینوں کے ریٹس درآمد ہو گئے:\n${rateDetailsText}`
+            );
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error importing Abdullah rates: ", error);
+            setSuccessMessage('عبداللہ کے ریٹس درآمد کرنے میں خرابی: ' + error.message);
+            setShowSuccessPopup(true);
+        } finally {
+            setImportingAbdullah(false);
+            // Reset file input
+            event.target.value = '';
+        }
+    };
+
+    const handleSetCurrentMonthRates = async () => {
+        setSettingNextMonthRates(true);
+        setImportProgress({ current: 0, total: 0 });
+
+        try {
+            const result = await setCurrentMonthRatesFromLastPurchase((current, total, customerName) => {
+                setImportProgress({ current, total });
+            });
+
+            // Refresh rates after setting
+            await fetchRates();
+
+            setSuccessMessage(
+                `کامیابی! ${result.successCount} گاہکوں کے لیے اس مہینے کے ریٹس آخری خریداری کی بنیاد پر سیٹ ہو گئے۔ ${result.skippedCount} گاہک چھوڑ دیے گئے (کوئی خریداری نہیں ملی)۔`
+            );
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error setting current month rates: ", error);
+            setSuccessMessage('ریٹس سیٹ کرنے میں خرابی: ' + error.message);
+            setShowSuccessPopup(true);
+        } finally {
+            setSettingNextMonthRates(false);
+            setImportProgress({ current: 0, total: 0 });
+        }
+    };
+
     return (
         <div className="main-content">
             <section id="settings" className="active">
@@ -130,6 +237,314 @@ const RatePage = () => {
                             {loading && <LoadingSpinner />}
                         </button>
                     </form>
+
+                    {/* Import Rates Section */}
+                    <div style={{ 
+                        marginTop: '30px', 
+                        padding: '25px', 
+                        borderTop: '2px solid #e9ecef',
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: '8px'
+                    }}>
+                        <h3 style={{ marginBottom: '10px', color: '#2d6a4f', fontSize: '20px' }}>
+                            📥 مہینہ وار ریٹس درآمد کریں
+                        </h3>
+                        <p style={{ marginBottom: '20px', color: '#666', fontSize: '14px', lineHeight: '1.6' }}>
+                            JSON فائل سے تمام گاہکوں کے لیے مہینہ وار ریٹس خودکار طریقے سے درآمد کریں۔ 
+                            یہ تمام مہینوں کے لیے ریٹس سیٹ کر دے گا۔
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleImportRates}
+                                disabled={importing}
+                                id="importRatesFile"
+                                style={{ display: 'none' }}
+                            />
+                            <label
+                                htmlFor="importRatesFile"
+                                style={{
+                                    padding: '14px 28px',
+                                    backgroundColor: importing ? '#6c757d' : '#2d6a4f',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: importing ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: importing ? 'none' : '0 2px 5px rgba(0,0,0,0.1)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!importing) {
+                                        e.target.style.backgroundColor = '#1b4332';
+                                        e.target.style.transform = 'translateY(-1px)';
+                                        e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!importing) {
+                                        e.target.style.backgroundColor = '#2d6a4f';
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                                    }
+                                }}
+                            >
+                                {importing ? (
+                                    <>
+                                        <LoadingSpinner />
+                                        <span>درآمد ہو رہا ہے...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>📁</span>
+                                        <span>JSON فائل منتخب کریں اور درآمد کریں</span>
+                                    </>
+                                )}
+                            </label>
+                            {importing && importProgress.total > 0 && (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '5px',
+                                    padding: '10px 15px',
+                                    backgroundColor: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e9ecef'
+                                }}>
+                                    <span style={{ color: '#2d6a4f', fontSize: '14px', fontWeight: '600' }}>
+                                        پیش رفت: {importProgress.current} / {importProgress.total} گاہک
+                                    </span>
+                                    <div style={{
+                                        width: '200px',
+                                        height: '6px',
+                                        backgroundColor: '#e9ecef',
+                                        borderRadius: '3px',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            width: `${(importProgress.current / importProgress.total) * 100}%`,
+                                            height: '100%',
+                                            backgroundColor: '#2d6a4f',
+                                            transition: 'width 0.3s ease'
+                                        }}></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {!importing && (
+                            <div style={{ 
+                                marginTop: '15px', 
+                                padding: '12px', 
+                                backgroundColor: '#e3f2fd', 
+                                borderRadius: '6px',
+                                borderLeft: '4px solid #2196f3'
+                            }}>
+                                <p style={{ margin: 0, color: '#1976d2', fontSize: '13px' }}>
+                                    <strong>نوٹ:</strong> یہ تمام گاہکوں کے لیے تمام مہینوں کے ریٹس درآمد کرے گا۔ 
+                                    موجودہ ریٹس کو اپڈیٹ کر دیا جائے گا۔
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Import Abdullah Rates Only Section - TEST */}
+                    <div style={{ 
+                        marginTop: '30px', 
+                        padding: '25px', 
+                        borderTop: '2px solid #e9ecef',
+                        backgroundColor: '#fff3cd',
+                        borderRadius: '8px',
+                        border: '2px solid #ffc107'
+                    }}>
+                        <h3 style={{ marginBottom: '10px', color: '#856404', fontSize: '20px' }}>
+                            🧪 ٹیسٹ: عبداللہ کے لیے ریٹس درآمد کریں
+                        </h3>
+                        <p style={{ marginBottom: '20px', color: '#856404', fontSize: '14px', lineHeight: '1.6' }}>
+                            یہ صرف عبداللہ گاہک کے لیے ریٹس درآمد کرے گا۔ خریداری کے ڈیٹا سے اصل ریٹس کا حساب لگایا جائے گا۔
+                            کامیابی کے بعد تمام گاہکوں کے لیے استعمال کیا جا سکتا ہے۔
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                            <input
+                                type="file"
+                                accept=".json"
+                                onChange={handleImportAbdullahRates}
+                                disabled={importingAbdullah}
+                                id="importAbdullahRatesFile"
+                                style={{ display: 'none' }}
+                            />
+                            <label
+                                htmlFor="importAbdullahRatesFile"
+                                style={{
+                                    padding: '14px 28px',
+                                    backgroundColor: importingAbdullah ? '#6c757d' : '#ffc107',
+                                    color: '#000',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: importingAbdullah ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: importingAbdullah ? 'none' : '0 2px 5px rgba(0,0,0,0.1)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!importingAbdullah) {
+                                        e.target.style.backgroundColor = '#ffb300';
+                                        e.target.style.transform = 'translateY(-1px)';
+                                        e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!importingAbdullah) {
+                                        e.target.style.backgroundColor = '#ffc107';
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                                    }
+                                }}
+                            >
+                                {importingAbdullah ? (
+                                    <>
+                                        <LoadingSpinner />
+                                        <span>درآمد ہو رہا ہے...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>🧪</span>
+                                        <span>عبداللہ کے لیے ریٹس درآمد کریں (ٹیسٹ)</span>
+                                    </>
+                                )}
+                            </label>
+                        </div>
+                        {!importingAbdullah && (
+                            <div style={{ 
+                                marginTop: '15px', 
+                                padding: '12px', 
+                                backgroundColor: '#fff3cd', 
+                                borderRadius: '6px',
+                                borderLeft: '4px solid #ffc107'
+                            }}>
+                                <p style={{ margin: 0, color: '#856404', fontSize: '13px' }}>
+                                    <strong>نوٹ:</strong> یہ صرف عبداللہ گاہک کے لیے ریٹس درآمد کرے گا۔ 
+                                    خریداری کے ڈیٹا سے اصل ریٹس کا حساب لگایا جائے گا (مثال: 500/200)۔
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Set Current Month Rates from Last Purchase */}
+                    <div style={{ 
+                        marginTop: '30px', 
+                        padding: '25px', 
+                        borderTop: '2px solid #e9ecef',
+                        backgroundColor: '#d1ecf1',
+                        borderRadius: '8px',
+                        border: '2px solid #17a2b8'
+                    }}>
+                        <h3 style={{ marginBottom: '10px', color: '#0c5460', fontSize: '20px' }}>
+                            ⚡ اس مہینے کے ریٹس آخری خریداری سے سیٹ کریں
+                        </h3>
+                        <p style={{ marginBottom: '20px', color: '#0c5460', fontSize: '14px', lineHeight: '1.6' }}>
+                            تمام گاہکوں کے لیے اس مہینے کے ریٹس ان کی آخری خریداری کی بنیاد پر خودکار طریقے سے سیٹ کریں۔
+                            اگر کسی گاہک کی کوئی خریداری نہیں ملی تو وہ چھوڑ دیا جائے گا۔
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                            <button
+                                onClick={handleSetCurrentMonthRates}
+                                disabled={settingNextMonthRates}
+                                style={{
+                                    padding: '14px 28px',
+                                    backgroundColor: settingNextMonthRates ? '#6c757d' : '#17a2b8',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: settingNextMonthRates ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: settingNextMonthRates ? 'none' : '0 2px 5px rgba(0,0,0,0.1)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!settingNextMonthRates) {
+                                        e.target.style.backgroundColor = '#138496';
+                                        e.target.style.transform = 'translateY(-1px)';
+                                        e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!settingNextMonthRates) {
+                                        e.target.style.backgroundColor = '#17a2b8';
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                                    }
+                                }}
+                            >
+                                {settingNextMonthRates ? (
+                                    <>
+                                        <LoadingSpinner />
+                                        <span>سیٹ ہو رہا ہے...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>⚡</span>
+                                        <span>اس مہینے کے ریٹس سیٹ کریں</span>
+                                    </>
+                                )}
+                            </button>
+                            {settingNextMonthRates && importProgress.total > 0 && (
+                                <div style={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '5px',
+                                    padding: '10px 15px',
+                                    backgroundColor: 'white',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e9ecef'
+                                }}>
+                                    <span style={{ color: '#0c5460', fontSize: '14px', fontWeight: '600' }}>
+                                        پیش رفت: {importProgress.current} / {importProgress.total} گاہک
+                                    </span>
+                                    <div style={{
+                                        width: '200px',
+                                        height: '6px',
+                                        backgroundColor: '#e9ecef',
+                                        borderRadius: '3px',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            width: `${(importProgress.current / importProgress.total) * 100}%`,
+                                            height: '100%',
+                                            backgroundColor: '#17a2b8',
+                                            transition: 'width 0.3s ease'
+                                        }}></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {!settingNextMonthRates && (
+                            <div style={{ 
+                                marginTop: '15px', 
+                                padding: '12px', 
+                                backgroundColor: '#d1ecf1', 
+                                borderRadius: '6px',
+                                borderLeft: '4px solid #17a2b8'
+                            }}>
+                                <p style={{ margin: 0, color: '#0c5460', fontSize: '13px' }}>
+                                    <strong>نوٹ:</strong> یہ ہر گاہک کی آخری خریداری سے ریٹس نکالے گا اور اس مہینے کے لیے سیٹ کرے گا۔
+                                    مثال: اگر آخری خریداری 500/200 پر ہوئی تو یہی ریٹس اس مہینے کے لیے سیٹ ہو جائیں گے۔
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Rate Information Card */}

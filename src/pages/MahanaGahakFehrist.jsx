@@ -366,8 +366,21 @@ const Home = () => {
         });
     };
 
-    // Function to recalculate purchase amounts based on monthly rates
+    // Function to get purchase amount - uses stored total first (most accurate)
     const recalculatePurchaseAmount = (purchase) => {
+        // Priority 1: Use stored total if available (most accurate - actual amount paid)
+        if (purchase.total && !isNaN(parseFloat(purchase.total))) {
+            return parseFloat(purchase.total);
+        }
+        
+        // Priority 2: Use stored rates from purchase if available
+        if (purchase.milkRate && purchase.yogurtRate) {
+            const milkAmount = (parseFloat(purchase.milk) || 0) * parseFloat(purchase.milkRate);
+            const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * parseFloat(purchase.yogurtRate);
+            return milkAmount + yogurtAmount;
+        }
+        
+        // Priority 3: Fallback to monthly rates (recalculate)
         const purchaseDate = new Date(purchase.date);
         const month = purchaseDate.getMonth();
         const year = purchaseDate.getFullYear();
@@ -376,7 +389,7 @@ const Home = () => {
         const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
         const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
-        return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
+        return (parseFloat(purchase.milk) || 0) * milkRate + (parseFloat(purchase.yogurt) || 0) * yogurtRate;
     };
 
     // Password verification functions

@@ -10,6 +10,10 @@ import {
     setDoc
 } from 'firebase/firestore';
 import PeopleIcon from '@mui/icons-material/People';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DownloadIcon from '@mui/icons-material/Download';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { resetDatabasePreservingCustomers, getDatabaseStats, exportAllDatabaseData, restoreDatabaseFromBackup } from '../utils/resetDatabase';
 
 const Dashboard = () => {
     // State variables
@@ -26,6 +30,11 @@ const Dashboard = () => {
     const [deleteParams, setDeleteParams] = useState(null);
     const [todaySales, setTodaySales] = useState(0);
     const [salesGrowth, setSalesGrowth] = useState(0);
+    const [databaseStats, setDatabaseStats] = useState(null);
+    const [resettingDatabase, setResettingDatabase] = useState(false);
+    const [exportingDatabase, setExportingDatabase] = useState(false);
+    const [restoringDatabase, setRestoringDatabase] = useState(false);
+    const [restoreProgress, setRestoreProgress] = useState({ current: 0, total: 0, collection: '' });
 
     // Loading spinner component
     const LoadingSpinner = () => (
@@ -63,7 +72,17 @@ const Dashboard = () => {
         fetchCustomers();
         fetchSuppliers();
         fetchBills();
+        loadDatabaseStats();
     }, []);
+
+    const loadDatabaseStats = async () => {
+        try {
+            const stats = await getDatabaseStats();
+            setDatabaseStats(stats);
+        } catch (error) {
+            console.error("Error loading database stats:", error);
+        }
+    };
 
     // Calculate today's sales when bills change
     useEffect(() => {
@@ -227,6 +246,101 @@ const Dashboard = () => {
         clearDailyRevenue();
     };
 
+    const handleResetDatabase = () => {
+        requestPasswordForDelete(async () => {
+            setResettingDatabase(true);
+            try {
+                const result = await resetDatabasePreservingCustomers();
+                if (result.success) {
+                    setSuccessMessage(result.message);
+                    // Refresh all data
+                    await fetchCustomers();
+                    await fetchSuppliers();
+                    await fetchBills();
+                    await loadDatabaseStats();
+                } else {
+                    setSuccessMessage(result.message);
+                }
+                setShowSuccessPopup(true);
+            } catch (error) {
+                console.error("Error resetting database:", error);
+                setSuccessMessage("ڈیٹا بیس کو ری سیٹ کرنے میں خرابی");
+                setShowSuccessPopup(true);
+            } finally {
+                setResettingDatabase(false);
+            }
+        });
+    };
+
+    const handleExportDatabase = async () => {
+        setExportingDatabase(true);
+        try {
+            const result = await exportAllDatabaseData();
+            if (result.success) {
+                setSuccessMessage(`ڈیٹا بیس کامیابی سے ڈاؤن لوڈ ہو گیا: ${result.filename}`);
+            } else {
+                setSuccessMessage(result.message || "ڈیٹا بیس کو ڈاؤن لوڈ کرنے میں خرابی");
+            }
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error exporting database:", error);
+            setSuccessMessage("ڈیٹا بیس کو ڈاؤن لوڈ کرنے میں خرابی");
+            setShowSuccessPopup(true);
+        } finally {
+            setExportingDatabase(false);
+        }
+    };
+
+    const handleRestoreDatabase = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            setSuccessMessage('براہ کرم صرف JSON فائل منتخب کریں');
+            setShowSuccessPopup(true);
+            return;
+        }
+
+        // Ask for confirmation
+        const confirmed = window.confirm(
+            'کیا آپ واقعی ڈیٹا بیس کو بحال کرنا چاہتے ہیں؟ یہ موجودہ تمام ڈیٹا کو تبدیل کر دے گا۔'
+        );
+        if (!confirmed) {
+            event.target.value = '';
+            return;
+        }
+
+        setRestoringDatabase(true);
+        setRestoreProgress({ current: 0, total: 0, collection: '' });
+
+        try {
+            const result = await restoreDatabaseFromBackup(file, (current, total, collection) => {
+                setRestoreProgress({ current, total, collection });
+            });
+
+            if (result.success) {
+                setSuccessMessage(result.message);
+                // Refresh all data
+                await fetchCustomers();
+                await fetchSuppliers();
+                await fetchBills();
+                await loadDatabaseStats();
+            } else {
+                setSuccessMessage(result.message || "ڈیٹا بیس کو بحال کرنے میں خرابی");
+            }
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error restoring database:", error);
+            setSuccessMessage(error.message || "ڈیٹا بیس کو بحال کرنے میں خرابی");
+            setShowSuccessPopup(true);
+        } finally {
+            setRestoringDatabase(false);
+            setRestoreProgress({ current: 0, total: 0, collection: '' });
+            // Reset file input
+            event.target.value = '';
+        }
+    };
+
     // Get today's bills count
     const getTodayBillsCount = () => {
         const today = new Date();
@@ -336,6 +450,206 @@ const Dashboard = () => {
                                     {suppliers.reduce((sum, supplier) => sum + (parseFloat(supplier.yogurtQuantity) || 0), 0).toFixed(1)}
                                 </div>
                                 <div className="card-subtitle">کل سپلائی شدہ دہی</div>
+                            </div>
+                        </div>
+
+                        {/* Database Export Card */}
+                        <div className="dashboard-card" style={{ borderLeftColor: '#3498db' }}>
+                            <div className="card-header">
+                                <span className="card-title">ڈیٹا بیس بیک اپ</span>
+                                <span className="card-icon"><DownloadIcon fontSize="small" /></span>
+                            </div>
+                            <div className="card-body">
+                                <div className="card-subtitle" style={{ marginBottom: '15px' }}>
+                                    تمام کالیکشنز اور ڈیٹا کو JSON فائل میں ڈاؤن لوڈ کریں
+                                </div>
+                                {databaseStats && (
+                                    <div style={{ 
+                                        fontSize: '12px', 
+                                        color: '#666', 
+                                        marginBottom: '15px',
+                                        textAlign: 'right',
+                                        direction: 'rtl'
+                                    }}>
+                                        <div>گاہک: {databaseStats.customers}</div>
+                                        <div>خریدیں: {databaseStats.purchases}</div>
+                                        <div>بلز: {databaseStats.bills}</div>
+                                        <div>ادائیگیاں: {databaseStats.advancePayments}</div>
+                                        <div>سپلائرز: {databaseStats.suppliers}</div>
+                                    </div>
+                                )}
+                                <button
+                                    onClick={handleExportDatabase}
+                                    className="export-database-btn"
+                                    disabled={exportingDatabase || loading}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        backgroundColor: '#3498db',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {exportingDatabase ? (
+                                        <>
+                                            <LoadingSpinner />
+                                            ڈاؤن لوڈ ہو رہا ہے...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <DownloadIcon fontSize="small" />
+                                            ڈیٹا بیس ڈاؤن لوڈ کریں
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Database Restore Card */}
+                        <div className="dashboard-card" style={{ borderLeftColor: '#27ae60' }}>
+                            <div className="card-header">
+                                <span className="card-title">ڈیٹا بیس بحال کریں</span>
+                                <span className="card-icon"><CloudUploadIcon fontSize="small" /></span>
+                            </div>
+                            <div className="card-body">
+                                <div className="card-subtitle" style={{ marginBottom: '15px' }}>
+                                    بیک اپ فائل سے تمام ڈیٹا بحال کریں
+                                </div>
+                                {restoringDatabase && restoreProgress.total > 0 && (
+                                    <div style={{ 
+                                        fontSize: '12px', 
+                                        color: '#666', 
+                                        marginBottom: '15px',
+                                        textAlign: 'center',
+                                        direction: 'rtl'
+                                    }}>
+                                        <div>{restoreProgress.collection}: {restoreProgress.current} / {restoreProgress.total}</div>
+                                        <div style={{ 
+                                            width: '100%', 
+                                            height: '8px', 
+                                            backgroundColor: '#e0e0e0', 
+                                            borderRadius: '4px',
+                                            marginTop: '8px',
+                                            overflow: 'hidden'
+                                        }}>
+                                            <div style={{
+                                                width: `${(restoreProgress.current / restoreProgress.total) * 100}%`,
+                                                height: '100%',
+                                                backgroundColor: '#27ae60',
+                                                transition: 'width 0.3s ease'
+                                            }}></div>
+                                        </div>
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    accept=".json"
+                                    onChange={handleRestoreDatabase}
+                                    disabled={restoringDatabase || loading}
+                                    id="restore-file-input"
+                                    style={{ display: 'none' }}
+                                />
+                                <label
+                                    htmlFor="restore-file-input"
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        backgroundColor: restoringDatabase ? '#95a5a6' : '#27ae60',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: restoringDatabase ? 'not-allowed' : 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s ease',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    {restoringDatabase ? (
+                                        <>
+                                            <LoadingSpinner />
+                                            بحال ہو رہا ہے...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CloudUploadIcon fontSize="small" />
+                                            بیک اپ فائل منتخب کریں
+                                        </>
+                                    )}
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Database Reset Card */}
+                        <div className="dashboard-card" style={{ borderLeftColor: '#e74c3c' }}>
+                            <div className="card-header">
+                                <span className="card-title">ڈیٹا بیس ری سیٹ</span>
+                                <span className="card-icon"><RefreshIcon fontSize="small" /></span>
+                            </div>
+                            <div className="card-body">
+                                <div className="card-subtitle" style={{ marginBottom: '15px' }}>
+                                    تمام ڈیٹا صاف کریں لیکن مہینہ گاہک کی فہرست محفوظ رکھیں
+                                </div>
+                                {databaseStats && (
+                                    <div style={{ 
+                                        fontSize: '12px', 
+                                        color: '#666', 
+                                        marginBottom: '15px',
+                                        textAlign: 'right',
+                                        direction: 'rtl'
+                                    }}>
+                                        <div>خریدیں: {databaseStats.purchases}</div>
+                                        <div>بلز: {databaseStats.bills}</div>
+                                        <div>ادائیگیاں: {databaseStats.advancePayments}</div>
+                                        <div>سپلائرز: {databaseStats.suppliers}</div>
+                                    </div>
+                                )}
+                                <button
+                                    onClick={handleResetDatabase}
+                                    className="reset-database-btn"
+                                    disabled={resettingDatabase || loading}
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        backgroundColor: '#e74c3c',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    {resettingDatabase ? (
+                                        <>
+                                            <LoadingSpinner />
+                                            ری سیٹ ہو رہا ہے...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshIcon fontSize="small" />
+                                            ڈیٹا بیس ری سیٹ کریں
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -553,6 +867,42 @@ const Dashboard = () => {
                 }
 
                 .clear-revenue-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+
+                .reset-database-btn:hover:not(:disabled) {
+                    background-color: #c0392b !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+                }
+
+                .reset-database-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+
+                .export-database-btn:hover:not(:disabled) {
+                    background-color: #2980b9 !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+                }
+
+                .export-database-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+
+                label[for="restore-file-input"]:hover:not(:has(input:disabled)) {
+                    background-color: #229954 !important;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+                }
+
+                label[for="restore-file-input"]:has(input:disabled) {
                     opacity: 0.6;
                     cursor: not-allowed;
                     transform: none;

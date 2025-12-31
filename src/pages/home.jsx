@@ -57,7 +57,9 @@ const Home = () => {
     });
     const [purchaseFormData, setPurchaseFormData] = useState({
         milk: 0,
-        yogurt: 0
+        yogurt: 0,
+        milkRate: null, // Allow manual rate override
+        yogurtRate: null // Allow manual rate override
     });
     const [billFormData, setBillFormData] = useState({
         customerName: '',
@@ -2004,7 +2006,7 @@ const Home = () => {
             // Update daily purchases
             setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, newPurchase]);
 
-            setPurchaseFormData({ milk: 0, yogurt: 0 });
+            setPurchaseFormData({ milk: 0, yogurt: 0, milkRate: null, yogurtRate: null });
             closeModal('purchaseModal');
 
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
@@ -3560,20 +3562,36 @@ const Home = () => {
             const month = purchaseDate.getMonth();
             const year = purchaseDate.getFullYear();
 
-            // Try to get monthly rates first
-            const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
+            // Priority 1: Use stored rates from purchase (most accurate - actual rates used)
+            // Priority 2: Use monthly rates for that customer/month
+            // Priority 3: Fall back to global rates
+            let milkRate, yogurtRate;
+            
+            if (purchase.milkRate && purchase.yogurtRate) {
+                // Use the actual rates stored in the purchase (most accurate)
+                milkRate = parseFloat(purchase.milkRate);
+                yogurtRate = parseFloat(purchase.yogurtRate);
+            } else {
+                // Fallback to monthly rates or global rates
+                const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
+                milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+            }
 
-            // Use monthly rates if available, otherwise fall back to global rates
-            const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
-
-            const milkAmount = (parseFloat(purchase.milk) || 0) * milkRate;
-            const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+            // If purchase has stored total, use it (preserves historical accuracy)
+            // Otherwise calculate from rates
+            let purchaseAmount;
+            if (purchase.total && !isNaN(parseFloat(purchase.total))) {
+                purchaseAmount = parseFloat(purchase.total);
+            } else {
+                purchaseAmount = (parseFloat(purchase.milk) || 0) * milkRate + 
+                                (parseFloat(purchase.yogurt) || 0) * yogurtRate;
+            }
 
             return {
                 milk: acc.milk + (parseFloat(purchase.milk) || 0),
                 yogurt: acc.yogurt + (parseFloat(purchase.yogurt) || 0),
-                amount: acc.amount + milkAmount + yogurtAmount,
+                amount: acc.amount + purchaseAmount,
                 milkRate: milkRate,
                 yogurtRate: yogurtRate
             };
@@ -4919,20 +4937,30 @@ const Home = () => {
         return imgSrc;
     };
 
-    // Function to recalculate purchase amounts based on current rates
+    // Function to get purchase amount - uses stored total first (most accurate)
     const recalculatePurchaseAmount = (purchase) => {
+        // Priority 1: Use stored total if available (most accurate - actual amount paid)
+        if (purchase.total && !isNaN(parseFloat(purchase.total))) {
+            return parseFloat(purchase.total);
+        }
+        
+        // Priority 2: Use stored rates from purchase if available
+        if (purchase.milkRate && purchase.yogurtRate) {
+            const milkAmount = (parseFloat(purchase.milk) || 0) * parseFloat(purchase.milkRate);
+            const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * parseFloat(purchase.yogurtRate);
+            return milkAmount + yogurtAmount;
+        }
+        
+        // Priority 3: Fallback to monthly rates or global rates (recalculate)
         const purchaseDate = new Date(purchase.date);
         const month = purchaseDate.getMonth();
         const year = purchaseDate.getFullYear();
 
-        // Try to get monthly rates first
         const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
-
-        // Use monthly rates if available, otherwise fall back to global rates
         const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
         const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
 
-        return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
+        return (parseFloat(purchase.milk) || 0) * milkRate + (parseFloat(purchase.yogurt) || 0) * yogurtRate;
     };
 
 
@@ -5090,7 +5118,7 @@ const Home = () => {
             // Update daily purchases
             setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, newPurchase]);
 
-            setPurchaseFormData({ milk: 0, yogurt: 0 });
+            setPurchaseFormData({ milk: 0, yogurt: 0, milkRate: null, yogurtRate: null });
             closeModal('purchaseModal');
 
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
