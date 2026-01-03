@@ -8,8 +8,7 @@ const RozanaGahak = () => {
     // State variables
     const [rates, setRates] = useState({
         milk: 120,
-        yogurt: 140,
-        monthlyRates: {}
+        yogurt: 140
     });
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -19,6 +18,7 @@ const RozanaGahak = () => {
         customerName: '',
         milkQty: 0,
         yogurtQty: 0,
+        kheerAmount: 0,
         entries: []
     });
 
@@ -124,7 +124,7 @@ const RozanaGahak = () => {
         setLoading(true);
         try {
             const hasEntries = billFormData.entries.length > 0;
-            const hasDirectQuantities = parseFloat(billFormData.milkQty) > 0 || parseFloat(billFormData.yogurtQty) > 0;
+            const hasDirectQuantities = parseFloat(billFormData.milkQty) > 0 || parseFloat(billFormData.yogurtQty) > 0 || parseFloat(billFormData.kheerAmount) > 0;
 
             if (!hasEntries && !hasDirectQuantities) {
                 setSuccessMessage("براہ کرم کم از کم ایک اندراج شامل کریں");
@@ -139,17 +139,20 @@ const RozanaGahak = () => {
                     id: Date.now(),
                     milkQty: parseFloat(billFormData.milkQty) || 0,
                     yogurtQty: parseFloat(billFormData.yogurtQty) || 0,
+                    kheerAmount: parseFloat(billFormData.kheerAmount) || 0,
                     milkTotal: (parseFloat(billFormData.milkQty) || 0) * rates.milk,
-                    yogurtTotal: (parseFloat(billFormData.yogurtQty) || 0) * rates.yogurt
+                    yogurtTotal: (parseFloat(billFormData.yogurtQty) || 0) * rates.yogurt,
+                    kheerTotal: parseFloat(billFormData.kheerAmount) || 0
                 };
                 allEntries.push(currentEntry);
             }
 
-            const totalMilkQty = allEntries.reduce((sum, entry) => sum + entry.milkQty, 0);
-            const totalYogurtQty = allEntries.reduce((sum, entry) => sum + entry.yogurtQty, 0);
-            const totalMilkAmount = allEntries.reduce((sum, entry) => sum + entry.milkTotal, 0);
-            const totalYogurtAmount = allEntries.reduce((sum, entry) => sum + entry.yogurtTotal, 0);
-            const grandTotal = totalMilkAmount + totalYogurtAmount;
+            const totalMilkQty = allEntries.reduce((sum, entry) => sum + (entry.milkQty || 0), 0);
+            const totalYogurtQty = allEntries.reduce((sum, entry) => sum + (entry.yogurtQty || 0), 0);
+            const totalMilkAmount = allEntries.reduce((sum, entry) => sum + (entry.milkTotal || 0), 0);
+            const totalYogurtAmount = allEntries.reduce((sum, entry) => sum + (entry.yogurtTotal || 0), 0);
+            const totalKheerAmount = allEntries.reduce((sum, entry) => sum + (entry.kheerTotal || 0), 0);
+            const grandTotal = totalMilkAmount + totalYogurtAmount + totalKheerAmount;
 
             const billsCollection = collection(firestore, 'bills');
             const tokenNumber = await getNextTokenNumber();
@@ -158,8 +161,10 @@ const RozanaGahak = () => {
                 customerName: billFormData.customerName,
                 milkQty: totalMilkQty,
                 yogurtQty: totalYogurtQty,
+                kheerAmount: totalKheerAmount,
                 milkTotal: totalMilkAmount,
                 yogurtTotal: totalYogurtAmount,
+                kheerTotal: totalKheerAmount,
                 grandTotal: grandTotal,
                 tokenNumber: tokenNumber,
                 date: Timestamp.now(),
@@ -173,6 +178,7 @@ const RozanaGahak = () => {
                 customerName: '',
                 milkQty: 0,
                 yogurtQty: 0,
+                kheerAmount: 0,
                 entries: []
             });
 
@@ -205,8 +211,10 @@ const RozanaGahak = () => {
                 id: 1,
                 milkQty: bill.milkQty || 0,
                 yogurtQty: bill.yogurtQty || 0,
+                kheerAmount: bill.kheerAmount || 0,
                 milkTotal: bill.milkTotal || 0,
-                yogurtTotal: bill.yogurtTotal || 0
+                yogurtTotal: bill.yogurtTotal || 0,
+                kheerTotal: bill.kheerTotal || 0
             }
         ];
 
@@ -229,6 +237,17 @@ const RozanaGahak = () => {
                         <td style="text-align: center;">1</td>
                         <td style="text-align: center;">${entry.yogurtQty}</td>
                         <td style="text-align: center;">${entry.yogurtTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            }
+            if (entry.kheerAmount > 0 || entry.kheerTotal > 0) {
+                const kheerValue = entry.kheerTotal || entry.kheerAmount || 0;
+                entriesHTML += `
+                    <tr>
+                        <td style="text-align: right;">کھیر</td>
+                        <td style="text-align: center;">1</td>
+                        <td style="text-align: center;">-</td>
+                        <td style="text-align: center;">${kheerValue.toFixed(2)}</td>
                     </tr>
                 `;
             }
@@ -411,6 +430,22 @@ const RozanaGahak = () => {
                 <h2>نیا بل</h2>
                 <form onSubmit={handleBillFormSubmit}>
                     <div className="entry-form">
+                    <div className="form-group">
+                            <label htmlFor="kheerAmount">کھیر یا کھویا کی رقم (روپے):</label>
+                            <input
+                                type="number"
+                                id="kheerAmount"
+                                name="kheerAmount"
+                                min="0"
+                                step="any"
+                                placeholder="رقم درج کریں"
+                                value={billFormData.kheerAmount}
+                                onChange={(e) => {
+                                    handleInputChange(e, setBillFormData, billFormData);
+                                }}
+                                disabled={loading}
+                            />
+                        </div>
                         <div className="form-group">
                             <label htmlFor="milkAmount">دودھ کی رقم (روپے):</label>
                             <input
@@ -491,31 +526,37 @@ const RozanaGahak = () => {
                             />
                         </div>
 
+
+
                         <div className="action-buttons-row">
                             <button
                                 type="button"
                                 className="add-entry-btn"
                                 onClick={() => {
-                                    if (parseFloat(billFormData.milkQty) > 0 || parseFloat(billFormData.yogurtQty) > 0) {
+                                    if (parseFloat(billFormData.milkQty) > 0 || parseFloat(billFormData.yogurtQty) > 0 || parseFloat(billFormData.kheerAmount) > 0) {
                                         const newEntry = {
                                             id: Date.now(),
                                             milkQty: parseFloat(billFormData.milkQty) || 0,
                                             yogurtQty: parseFloat(billFormData.yogurtQty) || 0,
+                                            kheerAmount: parseFloat(billFormData.kheerAmount) || 0,
                                             milkTotal: (parseFloat(billFormData.milkQty) || 0) * rates.milk,
-                                            yogurtTotal: (parseFloat(billFormData.yogurtQty) || 0) * rates.yogurt
+                                            yogurtTotal: (parseFloat(billFormData.yogurtQty) || 0) * rates.yogurt,
+                                            kheerTotal: parseFloat(billFormData.kheerAmount) || 0
                                         };
 
                                         setBillFormData({
                                             ...billFormData,
                                             entries: [...billFormData.entries, newEntry],
                                             milkQty: 0,
-                                            yogurtQty: 0
+                                            yogurtQty: 0,
+                                            kheerAmount: 0
                                         });
 
                                         document.getElementById('milkAmount').value = '';
                                         document.getElementById('yogurtAmount').value = '';
+                                        document.getElementById('kheerAmount').value = '';
                                     } else {
-                                        alert("براہ کرم دودھ یا دہی کی مقدار درج کریں");
+                                        alert("براہ کرم دودھ، دہی یا کھیر کی مقدار درج کریں");
                                     }
                                 }}
                                 disabled={loading}
@@ -578,6 +619,22 @@ const RozanaGahak = () => {
                                                     </td>
                                                 </tr>
                                             )}
+                                            {(entry.kheerAmount > 0 || entry.kheerTotal > 0) && (
+                                                <tr>
+                                                    <td>کھیر</td>
+                                                    <td>-</td>
+                                                    <td>Rs. {(entry.kheerTotal || entry.kheerAmount || 0).toFixed(2)}</td>
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            className="delete-entry-btn"
+                                                            onClick={() => removeEntry(entry.id)}
+                                                        >
+                                                            <DeleteIcon fontSize="small" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </React.Fragment>
                                     ))}
                                 </tbody>
@@ -587,7 +644,7 @@ const RozanaGahak = () => {
                                         <td colSpan="2">
                                             <strong>
                                                 Rs. {billFormData.entries.reduce((total, entry) =>
-                                                    total + entry.milkTotal + entry.yogurtTotal, 0).toFixed(2)}
+                                                    total + (entry.milkTotal || 0) + (entry.yogurtTotal || 0) + (entry.kheerTotal || entry.kheerAmount || 0), 0).toFixed(2)}
                                             </strong>
                                         </td>
                                     </tr>

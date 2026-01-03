@@ -20,8 +20,7 @@ const PaymentSummary = () => {
     const [loading, setLoading] = useState(false);
     const [rates, setRates] = useState({
         milk: 120,
-        yogurt: 140,
-        monthlyRates: {}
+        yogurt: 140
     });
 
     // Payment summary state
@@ -130,7 +129,11 @@ const PaymentSummary = () => {
             const ratesDoc = doc(firestore, 'settings', 'rates');
             const ratesSnapshot = await getDoc(ratesDoc);
             if (ratesSnapshot.exists()) {
-                setRates(ratesSnapshot.data());
+                const data = ratesSnapshot.data();
+                setRates({
+                    milk: data.milk || 120,
+                    yogurt: data.yogurt || 140
+                });
             }
         } catch (error) {
             console.error("Error fetching rates: ", error);

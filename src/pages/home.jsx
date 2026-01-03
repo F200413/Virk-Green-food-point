@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { firestore } from '../firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, Timestamp, getDoc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, Timestamp, getDoc, setDoc, where } from 'firebase/firestore';
 import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -38,9 +38,9 @@ const Home = () => {
     const [purchases, setPurchases] = useState([]);
     const [rates, setRates] = useState({
         milk: 120,
-        yogurt: 140,
-        monthlyRates: {} // Store monthly rates for each customer
+        yogurt: 140
     });
+    const [monthlyRatesData, setMonthlyRatesData] = useState({});
     const [bills, setBills] = useState([]);
     const [advancePayments, setAdvancePayments] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -1622,6 +1622,7 @@ const Home = () => {
         fetchCustomers();
         fetchPurchases();
         fetchRates();
+        fetchMonthlyRates();
         fetchBills();
         fetchAdvancePayments();
         fetchSuppliers(); // Add this line
@@ -1765,18 +1766,15 @@ const Home = () => {
             const ratesSnapshot = await getDoc(ratesDoc);
             if (ratesSnapshot.exists()) {
                 const data = ratesSnapshot.data();
-                // Ensure monthlyRates property exists to prevent data loss
                 setRates({
                     milk: data.milk || 120,
-                    yogurt: data.yogurt || 140,
-                    monthlyRates: data.monthlyRates || {}
+                    yogurt: data.yogurt || 140
                 });
             } else {
-                // Initialize rates if they don't exist - include monthlyRates property
+                // Initialize rates if they don't exist
                 const initialRates = {
                     milk: 120,
-                    yogurt: 140,
-                    monthlyRates: {}
+                    yogurt: 140
                 };
                 await setDoc(ratesDoc, initialRates);
                 setRates(initialRates);
@@ -1785,6 +1783,30 @@ const Home = () => {
             console.error("Error fetching rates: ", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMonthlyRates = async () => {
+        try {
+            const monthlyRatesCollection = collection(firestore, 'monthlyRates');
+            const monthlyRatesSnapshot = await getDocs(monthlyRatesCollection);
+            const monthlyRatesMap = {};
+            
+            monthlyRatesSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const key = `${data.customerId}_${data.year}_${data.month}`;
+                monthlyRatesMap[key] = {
+                    milkRate: data.milkRate,
+                    yogurtRate: data.yogurtRate,
+                    customerId: data.customerId,
+                    month: data.month,
+                    year: data.year
+                };
+            });
+            
+            setMonthlyRatesData(monthlyRatesMap);
+        } catch (error) {
+            console.error("Error fetching monthly rates: ", error);
         }
     };
 
@@ -2143,11 +2165,9 @@ const Home = () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
-            // Ensure we preserve monthlyRates when updating global rates
             const updatedRates = {
                 milk: rates.milk,
-                yogurt: rates.yogurt,
-                monthlyRates: rates.monthlyRates || {} // Preserve existing monthly rates
+                yogurt: rates.yogurt
             };
             await setDoc(ratesDoc, updatedRates);
             closeModal('ratesModal');
@@ -2230,68 +2250,70 @@ const Home = () => {
     };
     // Helper function to find the most recent monthly rate for a customer
     const findMostRecentMonthlyRate = (customerId, targetMonth, targetYear) => {
-        if (!rates.monthlyRates) return null;
-        
-        let mostRecentRate = null;
-        let mostRecentDate = null;
-        
+        if (!monthlyRatesData || Object.keys(monthlyRatesData).length === 0) return null;
+
+        let mostRecentPastRate = null;
+        let mostRecentPastDate = null;
+        let closestFutureRate = null;
+        let closestFutureDate = null;
+
         // Search through all monthly rates for this customer
-        Object.keys(rates.monthlyRates).forEach(key => {
-            const [rateCustomerId, rateYear, rateMonth] = key.split('_');
-            
-            if (rateCustomerId === customerId) {
-                const rateDate = new Date(parseInt(rateYear), parseInt(rateMonth), 1);
+        Object.keys(monthlyRatesData).forEach(key => {
+            const rate = monthlyRatesData[key];
+
+            if (rate.customerId === customerId) {
+                const rateDate = new Date(rate.year, rate.month, 1);
                 const targetDate = new Date(targetYear, targetMonth, 1);
-                
-                // Only consider rates from current month or earlier
-                if (rateDate <= targetDate) {
-                    const rate = rates.monthlyRates[key];
-                    
-                    // Check if this rate has valid values
-                    if (rate &&
-                        typeof rate.milkRate === 'number' && rate.milkRate > 0 &&
-                        typeof rate.yogurtRate === 'number' && rate.yogurtRate > 0) {
-                        
-                        // If this is the most recent valid rate we've found, use it
-                        if (!mostRecentDate || rateDate > mostRecentDate) {
-                            mostRecentRate = rate;
-                            mostRecentDate = rateDate;
+
+                // Check if at least one rate is valid (OR logic - milk OR yogurt)
+                const hasValidMilkRate = rate.milkRate !== null && rate.milkRate !== undefined && typeof rate.milkRate === 'number' && rate.milkRate > 0;
+                const hasValidYogurtRate = rate.yogurtRate !== null && rate.yogurtRate !== undefined && typeof rate.yogurtRate === 'number' && rate.yogurtRate > 0;
+
+                if (hasValidMilkRate || hasValidYogurtRate) {
+                    if (rateDate <= targetDate) {
+                        // Past or current rate - find most recent
+                        if (!mostRecentPastDate || rateDate > mostRecentPastDate) {
+                            mostRecentPastRate = rate;
+                            mostRecentPastDate = rateDate;
+                        }
+                    } else {
+                        // Future rate - find closest one
+                        if (!closestFutureDate || rateDate < closestFutureDate) {
+                            closestFutureRate = rate;
+                            closestFutureDate = rateDate;
                         }
                     }
                 }
             }
         });
-        
-        // Debug logging to help identify the issue
-        if (mostRecentRate) {
-            console.log(`Found most recent monthly rate for customer ${customerId}:`, {
-                rate: mostRecentRate,
-                date: mostRecentDate,
-                targetMonth: targetMonth,
-                targetYear: targetYear
-            });
+
+        // Prefer past rates, but use future rate if no past rate found
+        if (mostRecentPastRate) {
+            return mostRecentPastRate;
         }
-        
-        return mostRecentRate;
+        if (closestFutureRate) {
+            return closestFutureRate;
+        }
+        return null;
     };
 
     // Add this function to get rates for a specific month
     const getMonthlyRates = (customerId, month, year) => {
         const key = `${customerId}_${year}_${month}`;
-        // Ensure rates.monthlyRates is always an object
-        if (!rates.monthlyRates) return null;
-        
+
         // First, try to get rates for the specific month
-        const monthlyRate = rates.monthlyRates[key];
-        if (monthlyRate &&
-            typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
-            typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
-            console.log(`Using specific monthly rate for customer ${customerId}, month ${month}, year ${year}:`, monthlyRate);
-            return monthlyRate;
+        const monthlyRate = monthlyRatesData[key];
+        if (monthlyRate) {
+            // Check if at least one rate is valid (OR logic - milk OR yogurt)
+            const hasValidMilkRate = monthlyRate.milkRate !== null && monthlyRate.milkRate !== undefined && typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0;
+            const hasValidYogurtRate = monthlyRate.yogurtRate !== null && monthlyRate.yogurtRate !== undefined && typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0;
+
+            if (hasValidMilkRate || hasValidYogurtRate) {
+                return monthlyRate;
+            }
         }
-        
+
         // If no rates found for current month, find the most recent monthly rate
-        console.log(`No specific monthly rate found for customer ${customerId}, month ${month}, year ${year}. Looking for most recent rate...`);
         return findMostRecentMonthlyRate(customerId, month, year);
     };
     const deleteAdvancePayment = async (paymentId) => {
@@ -3962,9 +3984,12 @@ const Home = () => {
                 // Try to get monthly rates first
                 const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
 
-                // Use monthly rates if available, otherwise fall back to customer's custom rates or global rates
-                const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-                const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                // Use monthly rates only (no fallback to global rates)
+                if (!monthlyRates) {
+                    return totals; // Return totals without amount if no monthly rates
+                }
+                const milkRate = monthlyRates.milkRate;
+                const yogurtRate = monthlyRates.yogurtRate;
 
                 // Calculate the total amount using the rates
                 const calculatedAmount = (totals.milk * milkRate) + (totals.yogurt * yogurtRate);
@@ -4928,9 +4953,12 @@ const Home = () => {
         // Try to get monthly rates first
         const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
 
-        // Use monthly rates if available, otherwise fall back to global rates
-        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+        // Use monthly rates only (no fallback to global rates)
+        if (!monthlyRates) {
+            return 0; // Return 0 if no monthly rates
+        }
+        const milkRate = monthlyRates.milkRate;
+        const yogurtRate = monthlyRates.yogurtRate;
 
         return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
     };
@@ -4951,8 +4979,8 @@ const Home = () => {
             customerId,
             month: currentMonth,
             year: currentYear,
-            milkRate: monthlyRates ? monthlyRates.milkRate : rates.milk,
-            yogurtRate: monthlyRates ? monthlyRates.yogurtRate : rates.yogurt
+            milkRate: monthlyRates ? monthlyRates.milkRate : 0,
+            yogurtRate: monthlyRates ? monthlyRates.yogurtRate : 0
         });
         const modal = document.getElementById('monthlyRatesModal');
         if (modal) {
@@ -4969,8 +4997,8 @@ const Home = () => {
             const monthlyRates = getMonthlyRates(updatedForm.customerId, updatedForm.month, updatedForm.year);
             const customer = customers.find(c => c.id === updatedForm.customerId);
             
-            updatedForm.milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-            updatedForm.yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+            updatedForm.milkRate = monthlyRates ? monthlyRates.milkRate : 0;
+            updatedForm.yogurtRate = monthlyRates ? monthlyRates.yogurtRate : 0;
         }
         
         setMonthlyRateForm(updatedForm);
@@ -4986,7 +5014,6 @@ const Home = () => {
     const updateMonthlyRates = async () => {
         setLoading(true);
         try {
-            const ratesDoc = doc(firestore, 'settings', 'rates');
             const key = `${monthlyRateForm.customerId}_${monthlyRateForm.year}_${monthlyRateForm.month}`;
             
             // Validate and protect monthly rates from being overwritten
@@ -5002,24 +5029,43 @@ const Home = () => {
                 return;
             }
             
-            const updatedRates = {
-                ...rates,
-                monthlyRates: {
-                    ...rates.monthlyRates,
-                    [key]: {
+            // Check if monthly rate already exists
+            const existingRate = getMonthlyRates(monthlyRateForm.customerId, monthlyRateForm.month, monthlyRateForm.year);
+            const monthlyRatesCollection = collection(firestore, 'monthlyRates');
+            
+            if (existingRate) {
+                // Update existing document - find the document ID
+                const monthlyRatesSnapshot = await getDocs(query(
+                    monthlyRatesCollection,
+                    where('customerId', '==', monthlyRateForm.customerId),
+                    where('month', '==', monthlyRateForm.month),
+                    where('year', '==', monthlyRateForm.year)
+                ));
+                
+                if (!monthlyRatesSnapshot.empty) {
+                    const docId = monthlyRatesSnapshot.docs[0].id;
+                    await updateDoc(doc(firestore, 'monthlyRates', docId), {
                         milkRate: parseFloat(monthlyRateForm.milkRate),
-                        yogurtRate: parseFloat(monthlyRateForm.yogurtRate)
-                    }
+                        yogurtRate: parseFloat(monthlyRateForm.yogurtRate),
+                        updatedAt: new Date()
+                    });
                 }
-            };
+            } else {
+                // Create new document
+                await addDoc(monthlyRatesCollection, {
+                    customerId: monthlyRateForm.customerId,
+                    month: monthlyRateForm.month,
+                    year: monthlyRateForm.year,
+                    milkRate: parseFloat(monthlyRateForm.milkRate),
+                    yogurtRate: parseFloat(monthlyRateForm.yogurtRate),
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+            }
             
-            console.log(`Saving monthly rates for customer ${monthlyRateForm.customerId}, month ${monthlyRateForm.month}, year ${monthlyRateForm.year}:`, {
-                key: key,
-                rates: updatedRates.monthlyRates[key]
-            });
+            // Refresh monthly rates data
+            await fetchMonthlyRates();
             
-            await setDoc(ratesDoc, updatedRates);
-            setRates(updatedRates);
             closeModal('monthlyRatesModal');
             setSuccessMessage('مہینہ وار ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);

@@ -17,9 +17,9 @@ const Home = () => {
     const [advancePayments, setAdvancePayments] = useState([]);
     const [rates, setRates] = useState({
         milk: 120,
-        yogurt: 140,
-        monthlyRates: {}
+        yogurt: 140
     });
+    const [monthlyRatesData, setMonthlyRatesData] = useState({});
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [customerListSearchTerm, setCustomerListSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
@@ -68,6 +68,7 @@ const Home = () => {
         fetchPurchases();
         fetchAdvancePayments();
         fetchRates();
+        fetchMonthlyRates();
     }, []);
 
     const fetchCustomers = async () => {
@@ -152,58 +153,152 @@ const Home = () => {
             const ratesDoc = doc(firestore, 'settings', 'rates');
             const ratesSnapshot = await getDoc(ratesDoc);
             if (ratesSnapshot.exists()) {
-                setRates(ratesSnapshot.data());
+                const data = ratesSnapshot.data();
+                setRates({
+                    milk: data.milk || 120,
+                    yogurt: data.yogurt || 140
+                });
             }
         } catch (error) {
             console.error("Error fetching rates: ", error);
         }
     };
 
+    const fetchMonthlyRates = async () => {
+        try {
+            console.log('Fetching monthly rates from Firestore...');
+            const monthlyRatesCollection = collection(firestore, 'monthlyRates');
+            const monthlyRatesSnapshot = await getDocs(monthlyRatesCollection);
+            const monthlyRatesMap = {};
+            
+            console.log(`Found ${monthlyRatesSnapshot.docs.length} monthly rate documents`);
+            
+            monthlyRatesSnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const key = `${data.customerId}_${data.year}_${data.month}`;
+                monthlyRatesMap[key] = {
+                    milkRate: data.milkRate || null,
+                    yogurtRate: data.yogurtRate || null,
+                    customerId: data.customerId,
+                    month: data.month,
+                    year: data.year
+                };
+                console.log(`  - Loaded rate for customer ${data.customerId}, month ${data.month}/${data.year}: milk=${data.milkRate}, yogurt=${data.yogurtRate}`);
+                console.log(`  - Stored with key: ${key}`);
+            });
+            
+            console.log('Monthly rates map:', monthlyRatesMap);
+            setMonthlyRatesData(monthlyRatesMap);
+            console.log('Monthly rates state updated');
+        } catch (error) {
+            console.error("Error fetching monthly rates: ", error);
+        }
+    };
+
     // Monthly rates functions
     const findMostRecentMonthlyRate = (customerId, targetMonth, targetYear) => {
-        if (!rates.monthlyRates) return null;
-        
-        let mostRecentRate = null;
-        let mostRecentDate = null;
-        
-        Object.keys(rates.monthlyRates).forEach(key => {
-            const [rateCustomerId, rateYear, rateMonth] = key.split('_');
-            
-            if (rateCustomerId === customerId) {
-                const rateDate = new Date(parseInt(rateYear), parseInt(rateMonth), 1);
+        if (!monthlyRatesData || Object.keys(monthlyRatesData).length === 0) return null;
+
+        let mostRecentPastRate = null;
+        let mostRecentPastDate = null;
+        let closestFutureRate = null;
+        let closestFutureDate = null;
+
+        Object.keys(monthlyRatesData).forEach(key => {
+            const rate = monthlyRatesData[key];
+
+            if (rate.customerId === customerId) {
+                const rateDate = new Date(rate.year, rate.month, 1);
                 const targetDate = new Date(targetYear, targetMonth, 1);
-                
-                if (rateDate <= targetDate) {
-                    const rate = rates.monthlyRates[key];
-                    
-                    if (rate &&
-                        typeof rate.milkRate === 'number' && rate.milkRate > 0 &&
-                        typeof rate.yogurtRate === 'number' && rate.yogurtRate > 0) {
-                        
-                        if (!mostRecentDate || rateDate > mostRecentDate) {
-                            mostRecentRate = rate;
-                            mostRecentDate = rateDate;
+
+                // Check if at least one rate is valid
+                const hasValidMilkRate = rate.milkRate !== null && rate.milkRate !== undefined && typeof rate.milkRate === 'number' && rate.milkRate > 0;
+                const hasValidYogurtRate = rate.yogurtRate !== null && rate.yogurtRate !== undefined && typeof rate.yogurtRate === 'number' && rate.yogurtRate > 0;
+
+                if (hasValidMilkRate || hasValidYogurtRate) {
+                    if (rateDate <= targetDate) {
+                        // Past or current rate - find most recent
+                        if (!mostRecentPastDate || rateDate > mostRecentPastDate) {
+                            mostRecentPastRate = rate;
+                            mostRecentPastDate = rateDate;
+                            console.log(`    - Found valid past rate for date ${rateDate.toISOString()}:`, rate);
+                        }
+                    } else {
+                        // Future rate - find closest one
+                        if (!closestFutureDate || rateDate < closestFutureDate) {
+                            closestFutureRate = rate;
+                            closestFutureDate = rateDate;
+                            console.log(`    - Found valid future rate for date ${rateDate.toISOString()}:`, rate);
                         }
                     }
                 }
             }
         });
-        
-        return mostRecentRate;
+
+        // Prefer past rates, but use future rate if no past rate found
+        if (mostRecentPastRate) {
+            return mostRecentPastRate;
+        }
+        if (closestFutureRate) {
+            console.log(`    - No past rate found, using closest future rate:`, closestFutureRate);
+            return closestFutureRate;
+        }
+        return null;
     };
 
     const getMonthlyRates = (customerId, month, year) => {
         const key = `${customerId}_${year}_${month}`;
-        if (!rates.monthlyRates) return null;
         
-        const monthlyRate = rates.monthlyRates[key];
-        if (monthlyRate &&
-            typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0 &&
-            typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0) {
-            return monthlyRate;
+        console.log(`getMonthlyRates called for customer ${customerId}, month ${month}/${year}, key: ${key}`);
+        console.log(`Current monthlyRatesData has ${Object.keys(monthlyRatesData).length} rates loaded`);
+        
+        // Check if there are any rates for this customer at all
+        const customerRates = Object.keys(monthlyRatesData).filter(k => k.startsWith(`${customerId}_`));
+        if (customerRates.length === 0) {
+            console.warn(`⚠️ WARNING: Customer ${customerId} has NO rates in the database at all!`);
+            console.warn(`   This customer was likely not in the monthly_rates_from_last_purchase.json file.`);
+            
+            // Get all unique customer IDs that DO have rates
+            const allCustomerIdsWithRates = [...new Set(Object.keys(monthlyRatesData).map(k => k.split('_')[0]))];
+            console.warn(`   Total customers with rates in database: ${allCustomerIdsWithRates.length}`);
+            console.warn(`   Sample customer IDs with rates (first 20):`, allCustomerIdsWithRates.slice(0, 20));
+            console.warn(`   All customer IDs with rates:`, allCustomerIdsWithRates);
+        } else {
+            console.log(`  - Found ${customerRates.length} rate(s) for this customer:`, customerRates);
+            console.log(`  - But none match the requested month ${month}/${year}`);
+            console.log(`  - Customer's available rates are for:`, customerRates.map(k => {
+                const parts = k.split('_');
+                return `${parseInt(parts[2]) + 1}/${parts[1]}`; // month+1 because month is 0-indexed
+            }));
         }
         
-        return findMostRecentMonthlyRate(customerId, month, year);
+        const monthlyRate = monthlyRatesData[key];
+        console.log(`  - Looking for key: ${key}`);
+        console.log(`  - Found rate object:`, monthlyRate);
+        
+        if (monthlyRate) {
+            // Check if at least one rate is valid (not null/undefined and > 0)
+            const hasValidMilkRate = monthlyRate.milkRate !== null && monthlyRate.milkRate !== undefined && typeof monthlyRate.milkRate === 'number' && monthlyRate.milkRate > 0;
+            const hasValidYogurtRate = monthlyRate.yogurtRate !== null && monthlyRate.yogurtRate !== undefined && typeof monthlyRate.yogurtRate === 'number' && monthlyRate.yogurtRate > 0;
+            
+            if (hasValidMilkRate || hasValidYogurtRate) {
+                console.log(`  - Found exact match with valid rates:`, monthlyRate);
+                return monthlyRate;
+            } else {
+                console.log(`  - Rate found but both rates are invalid/null:`, monthlyRate);
+            }
+        } else {
+            console.log(`  - No rate found for key: ${key}`);
+        }
+        
+        console.log(`  - No exact match found, searching for most recent rate...`);
+        const mostRecent = findMostRecentMonthlyRate(customerId, month, year);
+        if (!mostRecent) {
+            console.error(`❌ ERROR: No rate found for customer ${customerId} for month ${month}/${year} or any previous month!`);
+            console.error(`   This customer needs a rate to be set manually or added to the JSON file.`);
+        }
+        console.log(`  - Most recent rate found:`, mostRecent);
+        return mostRecent;
     };
 
     // Helper functions
@@ -228,8 +323,11 @@ const Home = () => {
             const year = purchaseDate.getFullYear();
 
             const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
-            const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+            if (!monthlyRates) {
+                return { milk: 0, yogurt: 0, amount: 0 };
+            }
+            const milkRate = monthlyRates.milkRate || 0;
+            const yogurtRate = monthlyRates.yogurtRate || 0;
 
             const milkAmount = (parseFloat(purchase.milk) || 0) * milkRate;
             const yogurtAmount = (parseFloat(purchase.yogurt) || 0) * yogurtRate;
@@ -294,8 +392,11 @@ const Home = () => {
 
         const currentMonth = selectedDate.getMonth();
         const currentYear = selectedDate.getFullYear();
+        
+        console.log(`getCurrentMonthTotals: Viewing month ${currentMonth + 1}/${currentYear} (selectedDate: ${selectedDate.toLocaleDateString()})`);
 
         const monthlyPurchases = filterPurchasesByMonth(selectedCustomer, currentMonth, currentYear);
+        console.log(`getCurrentMonthTotals: Found ${monthlyPurchases.length} purchases for this month`);
         return calculateTotals(monthlyPurchases);
     };
 
@@ -368,15 +469,34 @@ const Home = () => {
 
     // Function to recalculate purchase amounts based on monthly rates
     const recalculatePurchaseAmount = (purchase) => {
-        const purchaseDate = new Date(purchase.date);
-        const month = purchaseDate.getMonth();
-        const year = purchaseDate.getFullYear();
+        try {
+            if (!purchase || !purchase.date || !purchase.customerId) {
+                return 0;
+            }
+            
+            const purchaseDate = new Date(purchase.date);
+            const month = purchaseDate.getMonth();
+            const year = purchaseDate.getFullYear();
+            
+            console.log(`recalculatePurchaseAmount: Purchase date ${purchaseDate.toLocaleDateString()} (month ${month + 1}, year ${year}) for customer ${purchase.customerId}`);
 
-        const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
-        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+            const monthlyRates = getMonthlyRates(purchase.customerId, month, year);
+            if (!monthlyRates) {
+                return 0;
+            }
+            
+            // Handle cases where rates might be null, undefined, or not a number
+            const milkRate = (monthlyRates.milkRate != null && !isNaN(monthlyRates.milkRate)) ? monthlyRates.milkRate : 0;
+            const yogurtRate = (monthlyRates.yogurtRate != null && !isNaN(monthlyRates.yogurtRate)) ? monthlyRates.yogurtRate : 0;
 
-        return (parseFloat(purchase.milk) * milkRate) + (parseFloat(purchase.yogurt) * yogurtRate);
+            const milkQty = parseFloat(purchase.milk) || 0;
+            const yogurtQty = parseFloat(purchase.yogurt) || 0;
+
+            return (milkQty * milkRate) + (yogurtQty * yogurtRate);
+        } catch (error) {
+            console.error("Error in recalculatePurchaseAmount:", error);
+            return 0;
+        }
     };
 
     // Password verification functions
@@ -441,8 +561,15 @@ const Home = () => {
             const purchaseYear = selectedDate.getFullYear();
             const monthlyRates = getMonthlyRates(selectedCustomer, purchaseMonth, purchaseYear);
             
-            const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-            const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+            if (!monthlyRates) {
+                setLoading(false);
+                setSuccessMessage(`براہ کرم پہلے ${customer?.name} کے لیے ${purchaseMonth + 1}/${purchaseYear} کا مہینہ وار ریٹ سیٹ کریں`);
+                setShowSuccessPopup(true);
+                return;
+            }
+            
+            const milkRate = monthlyRates.milkRate || 0;
+            const yogurtRate = monthlyRates.yogurtRate || 0;
 
             const purchaseDate = new Date(selectedDate);
             purchaseDate.setHours(new Date().getHours());
@@ -460,10 +587,10 @@ const Home = () => {
                 date: Timestamp.fromDate(purchaseDate)
             };
 
-            await addDoc(purchasesCollection, newPurchase);
+            const docRef = await addDoc(purchasesCollection, newPurchase);
 
-            // Update local state
-            const purchaseWithId = { ...newPurchase, id: Date.now(), date: purchaseDate.toISOString() };
+            // Update local state with the actual Firestore document ID
+            const purchaseWithId = { ...newPurchase, id: docRef.id, date: purchaseDate.toISOString() };
             setDailyPurchases(prevDailyPurchases => [...prevDailyPurchases, purchaseWithId]);
 
             setPurchaseFormData({ milk: 0, yogurt: 0 });
@@ -472,7 +599,14 @@ const Home = () => {
             setSuccessMessage('پرچز کامیابی سے شامل کر دیا گیا');
             setShowSuccessPopup(true);
 
+            // Refresh purchases to ensure consistency
             await fetchPurchases();
+            
+            // Update daily purchases with fresh data to ensure IDs match
+            if (selectedCustomer) {
+                const filtered = filterPurchasesByDate(selectedDate);
+                setDailyPurchases(filtered);
+            }
         } catch (error) {
             console.error("Error adding purchase: ", error);
             setSuccessMessage('پرچز شامل کرنے میں خرابی');
@@ -730,8 +864,11 @@ const Home = () => {
 
         // Calculate total milk and yogurt
         const monthlyRates = getMonthlyRates(customer.id, selectedMonth, selectedYear);
-        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+        if (!monthlyRates) {
+            return { milk: 0, yogurt: 0, amount: 0 };
+        }
+        const milkRate = monthlyRates.milkRate || 0;
+        const yogurtRate = monthlyRates.yogurtRate || 0;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
@@ -748,8 +885,9 @@ const Home = () => {
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
             const prevMonthRates = getMonthlyRates(customer.id, m, selectedYear);
-            const milkRate = prevMonthRates ? prevMonthRates.milkRate : rates.milk;
-            const yogurtRate = prevMonthRates ? prevMonthRates.yogurtRate : rates.yogurt;
+            if (!prevMonthRates) continue;
+            const milkRate = prevMonthRates.milkRate || 0;
+            const yogurtRate = prevMonthRates.yogurtRate || 0;
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
             const prevYogurtTotal = Math.round(prevMonthTotals.yogurt * yogurtRate);
             const prevMonthTotal = prevMilkTotal + prevYogurtTotal;
@@ -1120,8 +1258,8 @@ const Home = () => {
         const monthlyTotals = calculateTotals(monthlyPurchases);
         
         const monthlyRates = getMonthlyRates(customer.id, currentMonth, currentYear);
-        const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
-        const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+        const milkRate = monthlyRates ? (monthlyRates.milkRate || 0) : 0;
+        const yogurtRate = monthlyRates ? (monthlyRates.yogurtRate || 0) : 0;
         const milkTotal = Math.round(monthlyTotals.milk * milkRate);
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const grandTotal = milkTotal + yogurtTotal;
@@ -1149,14 +1287,34 @@ const Home = () => {
             <section id="purchaseList" className="active">
                 <div className="list-header">
                     <h2>گاہک کی خریداری کی تاریخ</h2>
-                    <input
-                        type="text"
-                        placeholder="گاہکوں کو تلاش کریں..."
-                        className="search-filter"
-                        value={customerListSearchTerm}
-                        onChange={(e) => setCustomerListSearchTerm(e.target.value)}
-                        disabled={loading}
-                    />
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input
+                            type="text"
+                            placeholder="گاہکوں کو تلاش کریں..."
+                            className="search-filter"
+                            value={customerListSearchTerm}
+                            onChange={(e) => setCustomerListSearchTerm(e.target.value)}
+                            disabled={loading}
+                        />
+                        {/* <button
+                            onClick={() => {
+                                console.log('🔄 Manually refreshing monthly rates...');
+                                fetchMonthlyRates();
+                            }}
+                            style={{
+                                padding: '8px 15px',
+                                backgroundColor: '#3498db',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '5px',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                            disabled={loading}
+                        >
+                            🔄 ریٹس ریفریش کریں
+                        </button> */}
+                    </div>
                 </div>
 
                 <div className="customer-purchase-container">
@@ -1357,26 +1515,35 @@ const Home = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {dailyPurchases.map(purchase => (
-                                                            <tr key={purchase.id}>
-                                                                <td>{new Date(purchase.date).toLocaleTimeString()}</td>
-                                                                <td>{purchase.milk || 0}</td>
-                                                                <td>{purchase.yogurt || 0}</td>
-                                                                <td>{recalculatePurchaseAmount(purchase).toFixed(2)} روپے</td>
-                                                                <td>
-                                                                    <button className="action-btn" onClick={() => handleDeletePurchase(purchase.id)}>
-                                                                        <DeleteIcon />
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                        {dailyPurchases.map(purchase => {
+                                                            const amount = recalculatePurchaseAmount(purchase);
+                                                            return (
+                                                                <tr key={purchase.id}>
+                                                                    <td>{new Date(purchase.date).toLocaleTimeString()}</td>
+                                                                    <td>{purchase.milk || 0}</td>
+                                                                    <td>{purchase.yogurt || 0}</td>
+                                                                    <td>{isNaN(amount) ? '0.00' : amount.toFixed(2)} روپے</td>
+                                                                    <td>
+                                                                        <button className="action-btn" onClick={() => handleDeletePurchase(purchase.id)}>
+                                                                            <DeleteIcon />
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                     <tfoot>
                                                         <tr>
                                                             <td><strong>کل</strong></td>
                                                             <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.milk) || 0), 0)} لیٹر</strong></td>
                                                             <td><strong>{dailyPurchases.reduce((sum, p) => sum + (parseFloat(p.yogurt) || 0), 0)} کلو</strong></td>
-                                                            <td><strong>{dailyPurchases.reduce((sum, p) => sum + recalculatePurchaseAmount(p), 0).toFixed(2)} روپے</strong></td>
+                                                            <td><strong>{(() => {
+                                                                const total = dailyPurchases.reduce((sum, p) => {
+                                                                    const amount = recalculatePurchaseAmount(p);
+                                                                    return sum + (isNaN(amount) ? 0 : amount);
+                                                                }, 0);
+                                                                return isNaN(total) ? '0.00' : total.toFixed(2);
+                                                            })()} روپے</strong></td>
                                                             <td></td>
                                                         </tr>
                                                     </tfoot>
@@ -1440,7 +1607,11 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    if (!monthlyRates) {
+                                        return 0;
+                                    }
+                                    const milkRate = monthlyRates.milkRate || 0;
+                                    if (milkRate === 0) return;
                                     const qty = amount / milkRate;
                                     setPurchaseFormData({ ...purchaseFormData, milk: qty });
                                 }}
@@ -1451,7 +1622,7 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    return monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    return monthlyRates ? (monthlyRates.milkRate || 0) : 0;
                                 })()} per liter
                             </small>
                         </div>
@@ -1470,7 +1641,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    if (!monthlyRates || !monthlyRates.yogurtRate) {
+                                        return;
+                                    }
+                                    const yogurtRate = monthlyRates.yogurtRate;
                                     const qty = amount / yogurtRate;
                                     setPurchaseFormData({ ...purchaseFormData, yogurt: qty });
                                 }}
@@ -1481,7 +1655,7 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    return monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    return monthlyRates ? (monthlyRates.yogurtRate || 0) : 0;
                                 })()} per kg
                             </small>
                         </div>
@@ -1501,7 +1675,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    if (!monthlyRates) {
+                                        return 0;
+                                    }
+                                    const milkRate = monthlyRates.milkRate || 0;
                                     const amount = qty * milkRate;
                                     document.getElementById('milkAmount').value = amount.toFixed(2);
                                 }}
@@ -1524,7 +1701,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    if (!monthlyRates || !monthlyRates.yogurtRate) {
+                                        return;
+                                    }
+                                    const yogurtRate = monthlyRates.yogurtRate;
                                     const amount = qty * yogurtRate;
                                     document.getElementById('yogurtAmount').value = amount.toFixed(2);
                                 }}
@@ -1625,7 +1805,11 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    if (!monthlyRates) {
+                                        return 0;
+                                    }
+                                    const milkRate = monthlyRates.milkRate || 0;
+                                    if (milkRate === 0) return;
                                     const qty = amount / milkRate;
                                     setPurchaseFormData({ ...purchaseFormData, milk: qty });
                                 }}
@@ -1636,7 +1820,7 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    return monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    return monthlyRates ? (monthlyRates.milkRate || 0) : 0;
                                 })()} per liter
                             </small>
                         </div>
@@ -1655,7 +1839,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    if (!monthlyRates || !monthlyRates.yogurtRate) {
+                                        return;
+                                    }
+                                    const yogurtRate = monthlyRates.yogurtRate;
                                     const qty = amount / yogurtRate;
                                     setPurchaseFormData({ ...purchaseFormData, yogurt: qty });
                                 }}
@@ -1666,7 +1853,7 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    return monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    return monthlyRates ? (monthlyRates.yogurtRate || 0) : 0;
                                 })()} per kg
                             </small>
                         </div>
@@ -1686,7 +1873,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const milkRate = monthlyRates ? monthlyRates.milkRate : rates.milk;
+                                    if (!monthlyRates) {
+                                        return 0;
+                                    }
+                                    const milkRate = monthlyRates.milkRate || 0;
                                     const amount = qty * milkRate;
                                     document.getElementById('milkAmount').value = amount.toFixed(2);
                                 }}
@@ -1709,7 +1899,10 @@ const Home = () => {
                                     const currentMonth = selectedDate.getMonth();
                                     const currentYear = selectedDate.getFullYear();
                                     const monthlyRates = getMonthlyRates(selectedCustomer, currentMonth, currentYear);
-                                    const yogurtRate = monthlyRates ? monthlyRates.yogurtRate : rates.yogurt;
+                                    if (!monthlyRates || !monthlyRates.yogurtRate) {
+                                        return;
+                                    }
+                                    const yogurtRate = monthlyRates.yogurtRate;
                                     const amount = qty * yogurtRate;
                                     document.getElementById('yogurtAmount').value = amount.toFixed(2);
                                 }}

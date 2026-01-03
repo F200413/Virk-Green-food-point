@@ -1,0 +1,1187 @@
+{
+  "exportDate": "2026-01-03T20:31:49.283Z",
+  "sourceFile": "monthly_user_data_2025-12-30.json",
+  "totalCustomers": 118,
+  "monthlyRates": [
+    {
+      "customerId": "gkD9acqu7ODj6k8Xz0R8",
+      "customerName": "  فہد سکول کے سامنے-045",
+      "lastPurchaseDate": "2025-11-30T15:24:37.510Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "XKSrXJ79q4OdytQPdxBG",
+      "customerName": " چاچا شریف -100",
+      "lastPurchaseDate": "2025-11-30T15:38:40.770Z",
+      "lastPurchaseMilk": 5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1150,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "cTq4jyOYC53zSgRGdOT9",
+      "customerName": " سید اسامہ-099 ",
+      "lastPurchaseDate": "2025-11-30T15:38:20.681Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 600,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "vF6PLzzZEMoOWEPljNjF",
+      "customerName": " عبداللہ مجید-021",
+      "lastPurchaseDate": "2025-11-30T15:17:58.464Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "S4M8KTcY4HdMPhlwQiLb",
+      "customerName": " مولوی فیصل-069",
+      "lastPurchaseDate": "2025-11-30T15:30:27.579Z",
+      "lastPurchaseMilk": 3.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 805,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "s8l0iABvgCX0I6mDZWFP",
+      "customerName": "002-حافظ",
+      "lastPurchaseDate": "2025-11-30T15:11:14.440Z",
+      "lastPurchaseMilk": 6.5,
+      "lastPurchaseYogurt": 1,
+      "lastPurchaseTotal": 1680,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "X59H1MNTqgKRL6m5xvlt",
+      "customerName": "012-رضوان تکبیرروڈ",
+      "lastPurchaseDate": "2025-11-30T15:14:27.364Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "h0h6H2oifibkDXTKvyKa",
+      "customerName": "014-ملک نایم سپین",
+      "lastPurchaseDate": "2025-11-30T15:15:02.551Z",
+      "lastPurchaseMilk": 5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1150,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "kYpxk99Vrr4ogB2wQclG",
+      "customerName": "026- ",
+      "lastPurchaseDate": "2025-11-30T15:19:59.149Z",
+      "lastPurchaseMilk": 6,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1380,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "kFbLJLoaM6Wtd0ztUCiP",
+      "customerName": "043-  yبلال  ",
+      "lastPurchaseDate": "2025-11-30T15:24:05.349Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "V8e2LVJnr54MWLN59w9M",
+      "customerName": "044-  حکم صاحب",
+      "lastPurchaseDate": "2025-11-30T15:24:21.093Z",
+      "lastPurchaseMilk": 12,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 2760,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "hb6ebUXqnsmI2civjkU3",
+      "customerName": "046-ھارون ماسٹرسٹی",
+      "lastPurchaseDate": "2025-11-30T15:24:55.640Z",
+      "lastPurchaseMilk": 8,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1840,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "N64QhbsjxORVPdgZvmaX",
+      "customerName": "063 - بشیر احمد تکبیرروڈ ",
+      "lastPurchaseDate": "2025-11-30T15:29:02.382Z",
+      "lastPurchaseMilk": 8,
+      "lastPurchaseYogurt": 2,
+      "lastPurchaseTotal": 2420,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "Jbbs3ra8inweH48PgRuy",
+      "customerName": "064-اوکاشا  ماسٹر سٹئ",
+      "lastPurchaseDate": "2025-11-30T16:05:02.990Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 720,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "JhNHBQTcCLl9yBDML4Xy",
+      "customerName": "076- احمدعجوسٹی",
+      "lastPurchaseDate": "2025-11-29T12:06:10.000Z",
+      "lastPurchaseMilk": 42,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 10080,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "XYik1yvH0b3gLc5rq1AN",
+      "customerName": "094-گوندل ",
+      "lastPurchaseDate": "2025-11-30T15:36:47.983Z",
+      "lastPurchaseMilk": 7,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1540,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "x2NidBeE4Div9XJNbUXT",
+      "customerName": "098-طاہر",
+      "lastPurchaseDate": "2025-11-30T15:38:02.726Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "vHzY3cOFGuvbvLJ3CeyA",
+      "customerName": "104-  اسد",
+      "lastPurchaseDate": "2025-11-30T15:42:35.409Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 450,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "hzrn8qx1ZXU6s5nO6zYo",
+      "customerName": "105-عاطف بٹ",
+      "lastPurchaseDate": "2025-11-30T15:44:26.100Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 550,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "k0lpfIBEhjR1ag8f4pJx",
+      "customerName": "109-مون  ",
+      "lastPurchaseDate": "2025-11-30T15:51:46.835Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 220,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "aP2T3sYOX0r12u47y9X7",
+      "customerName": "110-یوسف ماسٹرسٹی",
+      "lastPurchaseDate": "2025-11-29T12:57:27.000Z",
+      "lastPurchaseMilk": 73,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 17520,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "hhIPPVHRaywcf73OgTPd",
+      "customerName": "111-کاشف بٹ",
+      "lastPurchaseDate": "2025-11-30T15:52:22.468Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 220,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "QGbnCvA2Gi84WCo09Fzl",
+      "customerName": "113-سبحان  ماسٹرسٹی",
+      "lastPurchaseDate": "2025-11-30T16:13:17.347Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 960,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "5DkiXWU6YY2HL08I9XHo",
+      "customerName": "114-بشیر احمد",
+      "lastPurchaseDate": "2025-11-30T15:57:13.055Z",
+      "lastPurchaseMilk": 5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1200,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "s1RUxWxjh7SzD53kMBhR",
+      "customerName": "115-عمیر",
+      "lastPurchaseDate": "2025-11-29T13:02:29.000Z",
+      "lastPurchaseMilk": 64,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 14080,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "6hpUp08ZNYpWucdxjMzE",
+      "customerName": "116- اعجاز  احمد عجوا سٹی",
+      "lastPurchaseDate": "2025-11-29T13:05:05.000Z",
+      "lastPurchaseMilk": 65,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 15600,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "s3fKmlg8dsqW0HSTtAtN",
+      "customerName": "abdullah",
+      "lastPurchaseDate": "2025-12-29T15:17:42.000Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 1,
+      "lastPurchaseTotal": 470,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "KKr22h3BGlwndGUlarQa",
+      "customerName": "آفتاب 120",
+      "lastPurchaseDate": "2025-11-30T16:03:09.251Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "hH3CJo3PdPij4FfF3XdT",
+      "customerName": "ابو ہر یرہ -053",
+      "lastPurchaseDate": "2025-11-30T15:26:13.682Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "b20kELlse6b8NU8QIsa9",
+      "customerName": "احمد 1 -055",
+      "lastPurchaseDate": "2025-11-30T15:26:52.542Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "7mJgThhwHhEpnGXqhrmk",
+      "customerName": "احمد2  -056",
+      "lastPurchaseDate": "2025-11-30T15:27:10.479Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "CG7pktT7Bsmc9BHIa1yh",
+      "customerName": "اسلم-031",
+      "lastPurchaseDate": "2025-11-29T11:43:42.000Z",
+      "lastPurchaseMilk": 38.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 8470,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Vq6LsBhrXmp7HVW8Yy0q",
+      "customerName": "اظہر علی شاہ-047",
+      "lastPurchaseDate": "2025-11-30T15:25:17.901Z",
+      "lastPurchaseMilk": 1.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 345,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "uSLoEdyrp9hCOtS499gk",
+      "customerName": "امتیاز-041",
+      "lastPurchaseDate": "2025-11-30T15:23:29.732Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 660,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "GoVpw4QA7Fw0XcFb4oWP",
+      "customerName": "بابےدی ہٹی-022",
+      "lastPurchaseDate": "2025-11-30T15:18:19.461Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "lJrbwQ5GXIMMoVW5lUw4",
+      "customerName": "بلال-091",
+      "lastPurchaseDate": "2025-11-30T15:35:50.832Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Ib4jbytKOXVqb4aJCAyr",
+      "customerName": "بنک واے -106",
+      "lastPurchaseDate": "2025-11-30T15:46:08.249Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "KktpB6TX6hD0YgDgucq5",
+      "customerName": "پالی خاں-071",
+      "lastPurchaseDate": "2025-11-29T12:04:18.000Z",
+      "lastPurchaseMilk": 30,
+      "lastPurchaseYogurt": 5.08,
+      "lastPurchaseTotal": 7870,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "cTxJBZCM2U2gbYOOyogY",
+      "customerName": "جاوید-060",
+      "lastPurchaseDate": "2025-11-30T15:28:20.884Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 660,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "y5VGuwTmu2bvGI1RYBhy",
+      "customerName": "جبران 035",
+      "lastPurchaseDate": "2025-11-30T15:22:37.972Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 480,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "UGslsAVv0s0u3T8qbQOt",
+      "customerName": "حاجی نواز-005",
+      "lastPurchaseDate": "2025-11-30T15:12:25.707Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 550,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "reSTSsajT3eXsepcM6jq",
+      "customerName": "حامد ٹارہ-036",
+      "lastPurchaseDate": "2025-11-30T15:22:55.498Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 880,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "coZznZ7iAf7aZzAanRXT",
+      "customerName": "حسن لون[1]-088",
+      "lastPurchaseDate": "2025-11-30T15:34:50.453Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 960,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "3a5h2tbMdaIKKMIUSqno",
+      "customerName": "خالد محمود 066",
+      "lastPurchaseDate": "2025-11-29T12:02:41.000Z",
+      "lastPurchaseMilk": 113,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 27120,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "nvz4YCa3i0yJl0Qvvqk3",
+      "customerName": "خالد-034",
+      "lastPurchaseDate": "2025-11-30T15:22:19.568Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "BhQhNjsIW4XePoESWO4S",
+      "customerName": "خالد-087",
+      "lastPurchaseDate": "2025-11-30T12:28:46.082Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 450,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "poaaoM9AFBQD4q0iuNxY",
+      "customerName": "خالدماسٹرسٹی1 -102",
+      "lastPurchaseDate": "2025-11-30T16:05:47.371Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 720,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "BRRsmS6S0vXMRFDZ14zE",
+      "customerName": "خالدماسٹرسٹی2 -103",
+      "lastPurchaseDate": "2025-11-30T16:06:22.166Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 480,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "yW94VF3GSrZgMkwGWMkJ",
+      "customerName": "خاورسعید-092",
+      "lastPurchaseDate": "2025-11-30T15:36:08.585Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "WI8NqPzvQfF4mDY0Tzqo",
+      "customerName": "داود-020",
+      "lastPurchaseDate": "2025-11-29T11:37:18.000Z",
+      "lastPurchaseMilk": 30,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 6900,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "wtRs4g3xGu6LlvgXVChz",
+      "customerName": "رانا ارحم -017",
+      "lastPurchaseDate": "2025-11-30T15:16:53.074Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "beysLNJhmp18U5E0CRsT",
+      "customerName": "راناراشد-010",
+      "lastPurchaseDate": "2025-11-30T15:13:55.983Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "AOTtq3Opi2psNud8OZaz",
+      "customerName": "راناطیب-009",
+      "lastPurchaseDate": "2025-11-30T15:13:39.413Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "XZbgCbDKTpAeD1aUSqlr",
+      "customerName": "راناندیم-011",
+      "lastPurchaseDate": "2025-11-30T15:14:11.818Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Tyonz374ecICya57EOuF",
+      "customerName": "ریاض عجوہ سٹی-077",
+      "lastPurchaseDate": "2025-11-30T15:31:32.034Z",
+      "lastPurchaseMilk": 1.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 360,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "vQMrF9nq2O72PKUypRrU",
+      "customerName": "زاھد بٹ-029",
+      "lastPurchaseDate": "2025-11-30T15:21:03.116Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "5gTAAZB9xtmBOfE3CU7c",
+      "customerName": "زاھد-004",
+      "lastPurchaseDate": "2025-11-30T15:12:05.000Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "jIMCkStLEoNg8rYu5bDs",
+      "customerName": "زاھد-028",
+      "lastPurchaseDate": "2025-11-30T15:20:40.810Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "huD1zYWbwNJoqSzJaHjp",
+      "customerName": "زاہدحمید-089",
+      "lastPurchaseDate": "2025-11-30T15:35:09.633Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "bR0h5gFPYNBTas8ISKeS",
+      "customerName": "زیبر واپدا -61",
+      "lastPurchaseDate": "2025-11-30T15:28:36.818Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 440,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "oAj7eqf2htKjvWfyNTIk",
+      "customerName": "ساجد-080",
+      "lastPurchaseDate": "2025-11-30T15:32:13.881Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 450,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "M04kqDHlyKqxxzBjuJvX",
+      "customerName": "سعید-008",
+      "lastPurchaseDate": "2025-11-30T15:13:21.133Z",
+      "lastPurchaseMilk": 0,
+      "lastPurchaseYogurt": 0.8,
+      "lastPurchaseTotal": 200,
+      "calculatedMilkRate": null,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "BuPisgIFQtkr5j7HtKlY",
+      "customerName": "سیعد-062",
+      "lastPurchaseDate": "2025-11-29T12:01:29.000Z",
+      "lastPurchaseMilk": 35,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 7525,
+      "calculatedMilkRate": 215,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "8fpIMb4qVGGoLmyWD7Pi",
+      "customerName": "شہزادعجوسٹی -074",
+      "lastPurchaseDate": "2025-11-30T15:31:09.345Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 720,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "v5vGo0bUmwm8VAWL93Ok",
+      "customerName": "شیح فیصل 65",
+      "lastPurchaseDate": "2025-11-30T15:29:28.790Z",
+      "lastPurchaseMilk": 5.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1210,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "zkF27UWEsgQ6ZdXWvvML",
+      "customerName": "شیفق-093",
+      "lastPurchaseDate": "2025-11-30T15:36:27.115Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "NycotnFb2nQXNZ2tI147",
+      "customerName": "صیب-024",
+      "lastPurchaseDate": "2025-11-30T15:19:22.693Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "M4z3ZdjNjfwhH0AdIemx",
+      "customerName": "طارق کوٹلی-051",
+      "lastPurchaseDate": "2025-11-29T11:54:29.000Z",
+      "lastPurchaseMilk": 27.5,
+      "lastPurchaseYogurt": 1,
+      "lastPurchaseTotal": 6300,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "85jhfN9I9msZEDmdyDUz",
+      "customerName": "طیب-030",
+      "lastPurchaseDate": "2025-10-31T15:22:25.235Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 200,
+      "calculatedMilkRate": 200,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "ITLyaQB6gS2sXeO6J5Zw",
+      "customerName": "ظفر -073",
+      "lastPurchaseDate": "2025-11-30T15:30:46.446Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "JOdyFdwLkmfn1N2kHWwz",
+      "customerName": "عابد شاہ-058",
+      "lastPurchaseDate": "2025-11-30T15:27:47.537Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 880,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Zhk3wrQX4TTfcMxgX3ag",
+      "customerName": "عابد-025",
+      "lastPurchaseDate": "2025-11-30T15:19:42.394Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "iCkJr0g4OZNaAHSBnR2j",
+      "customerName": "عاصم باجوہ-101",
+      "lastPurchaseDate": "2025-11-30T15:40:21.460Z",
+      "lastPurchaseMilk": 1.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 337.5,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "5LP7K5HRtErDmqd9Txzh",
+      "customerName": "عامر-007",
+      "lastPurchaseDate": "2025-11-30T15:13:02.909Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "8Ok2eSjSfhZ6abGVgLu4",
+      "customerName": "عبد لرازق-048",
+      "lastPurchaseDate": "2025-11-30T15:25:37.861Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0.8,
+      "lastPurchaseTotal": 420,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "ri7D5sip7NJEQquaOMf8",
+      "customerName": "عبداللہ-038",
+      "lastPurchaseDate": "2025-11-29T11:47:30.000Z",
+      "lastPurchaseMilk": 36,
+      "lastPurchaseYogurt": 4.8,
+      "lastPurchaseTotal": 9300,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "4ViBl7bNdcpzMZCrHPBq",
+      "customerName": "عبدلرلمن 119",
+      "lastPurchaseDate": "2025-11-30T15:59:26.946Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "CqQV1V8ijV0Pfg5rPjdi",
+      "customerName": "عثمان باجوہ 59",
+      "lastPurchaseDate": "2025-11-30T15:28:03.478Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Z1gLJUbqQ4k6CvPwAjHg",
+      "customerName": "عدنان-072",
+      "lastPurchaseDate": "2025-11-29T12:04:38.000Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0.12,
+      "lastPurchaseTotal": 250,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "azDK5NdlKTXwu83dtLrO",
+      "customerName": "عرفان احمد 121",
+      "lastPurchaseDate": "2025-11-30T16:03:49.745Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 480,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "JI57VLRyeYaQWZZAabOF",
+      "customerName": "عرفان علی شاہ-039",
+      "lastPurchaseDate": "2025-11-29T11:48:33.000Z",
+      "lastPurchaseMilk": 48,
+      "lastPurchaseYogurt": 8.12,
+      "lastPurchaseTotal": 12590,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "9OuQKAIoj7VRcvFTowA9",
+      "customerName": "عرفان-042",
+      "lastPurchaseDate": "2025-11-30T15:23:46.226Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "SuIjs4px2QkKcWwp4Lht",
+      "customerName": "عزیر -070",
+      "lastPurchaseDate": "2025-11-29T12:03:58.000Z",
+      "lastPurchaseMilk": 56,
+      "lastPurchaseYogurt": 2,
+      "lastPurchaseTotal": 13100,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "ObetnrzM1keHKBANFjte",
+      "customerName": "عظیم-057",
+      "lastPurchaseDate": "2025-11-30T15:27:32.507Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 225,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "c1LTInesy2fIsC6GeU0I",
+      "customerName": "علاودین-015",
+      "lastPurchaseDate": "2025-11-30T15:16:27.000Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "fpA6zdQiRzyJnq6a3ECU",
+      "customerName": "علی بٹ -078",
+      "lastPurchaseDate": "2025-11-30T15:31:53.608Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 660,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "NDPNtjIlBKy8uxf8GceL",
+      "customerName": "عمر 17-006y",
+      "lastPurchaseDate": "2025-11-30T15:12:47.106Z",
+      "lastPurchaseMilk": 4.5,
+      "lastPurchaseYogurt": 0.52,
+      "lastPurchaseTotal": 1120,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "95DLcHhi4fJUttRdBxWv",
+      "customerName": "عمر-018",
+      "lastPurchaseDate": "2025-11-30T15:17:11.078Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "ILlqL9x1Yl6vpEe5MvAo",
+      "customerName": "عمر-050",
+      "lastPurchaseDate": "2025-11-29T11:53:40.000Z",
+      "lastPurchaseMilk": 30,
+      "lastPurchaseYogurt": 2.16,
+      "lastPurchaseTotal": 7440,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "O54BcBnL4Mes3O5V90DM",
+      "customerName": "عمران سردار-068",
+      "lastPurchaseDate": "2025-11-30T15:30:10.122Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 660,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "qUCgkVRssIQOEmyhVB3H",
+      "customerName": "عمران عجوہ سٹی-067",
+      "lastPurchaseDate": "2025-11-30T15:29:51.832Z",
+      "lastPurchaseMilk": 5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 1200,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "czMjMgrpZCrYJ7c7iptN",
+      "customerName": "عمران نیو 118",
+      "lastPurchaseDate": "2025-11-30T15:58:41.498Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 480,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "OyzxiTPdiuemg4lj9vxb",
+      "customerName": "عمران ورک-023",
+      "lastPurchaseDate": "2025-11-30T15:18:43.595Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 720,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "KQoOV9sDfoHjjy1jHwQi",
+      "customerName": "عمران-016",
+      "lastPurchaseDate": "2025-11-30T11:35:32.683Z",
+      "lastPurchaseMilk": 64.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 14190,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "gfeP1H6npBPlvOw5Cl3K",
+      "customerName": "فاروق-003",
+      "lastPurchaseDate": "2025-11-30T15:11:37.311Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "LzLUHrQa26h4MZhP6kDI",
+      "customerName": "فاروق-027",
+      "lastPurchaseDate": "2025-11-30T15:20:15.242Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 440,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "xI2Vl4jkoR40rpVibp3F",
+      "customerName": "فرحان-019",
+      "lastPurchaseDate": "2025-11-30T15:17:28.448Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "LN6ScK6dpn16jk3na7za",
+      "customerName": "قاسم باجوہ-052",
+      "lastPurchaseDate": "2025-11-30T16:16:42.865Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "ysid0uTizjQGiJGf0wPs",
+      "customerName": "قیصر-054",
+      "lastPurchaseDate": "2025-11-30T15:26:30.265Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "KjabiWG86AzjgtcO8Cwx",
+      "customerName": "قیوم-032",
+      "lastPurchaseDate": "2025-11-30T15:21:27.308Z",
+      "lastPurchaseMilk": 1.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 345,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "baja2sC5Ik46pQOyILSz",
+      "customerName": "گاے کا دودھ-049",
+      "lastPurchaseDate": "2025-11-30T15:25:54.701Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 450,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "HVUbzGKB0KOcrjhxIVBR",
+      "customerName": "گوہر-084",
+      "lastPurchaseDate": "2025-11-30T15:34:02.965Z",
+      "lastPurchaseMilk": 4,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 920,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "nAqiAtDBx3AVpYAijltb",
+      "customerName": "لقمان -095",
+      "lastPurchaseDate": "2025-11-30T15:37:09.350Z",
+      "lastPurchaseMilk": 2.5,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 575,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "8P7J4Q43rAvwmTSh39d1",
+      "customerName": "ماسٹرسٹی-086",
+      "lastPurchaseDate": "2025-11-29T12:17:02.000Z",
+      "lastPurchaseMilk": 81,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 19440,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "IoEbaA0CIZivD14HdxBT",
+      "customerName": "ماسٹرصابر 040",
+      "lastPurchaseDate": "2025-11-30T14:38:43.000Z",
+      "lastPurchaseMilk": 59,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 14160,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "AU4Ir7JSTS1jNVhV0Rb0",
+      "customerName": "محراب-090",
+      "lastPurchaseDate": "2025-11-30T15:35:31.548Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "07uGYFVr3ZZNsimUfvJP",
+      "customerName": "محمود باجوہ1 -097",
+      "lastPurchaseDate": "2025-11-30T16:14:23.133Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "cIlTbgS2O0vANZVUkUV5",
+      "customerName": "مرزا طایر بیگ -112",
+      "lastPurchaseDate": "2025-11-30T15:56:43.316Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "Z5FB8a4OLBq6YPxn31zf",
+      "customerName": "معظم باجوہ-085",
+      "lastPurchaseDate": "2025-11-30T15:34:21.130Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 675,
+      "calculatedMilkRate": 225,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "NmzsilXFFPC79zRodC8W",
+      "customerName": "ملک فراز-079",
+      "lastPurchaseDate": "2025-11-29T12:07:15.000Z",
+      "lastPurchaseMilk": 14,
+      "lastPurchaseYogurt": 1,
+      "lastPurchaseTotal": 3330,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": 250
+    },
+    {
+      "customerId": "rd0FpNlpWyTEgjNkKdTC",
+      "customerName": "ملک واسیم -037",
+      "lastPurchaseDate": "2025-11-30T01:44:18.000Z",
+      "lastPurchaseMilk": 54,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 12960,
+      "calculatedMilkRate": 240,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "OA0uXzWksKBXBARxkHvo",
+      "customerName": "میاں قیصر-013",
+      "lastPurchaseDate": "2025-11-30T15:14:45.767Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "2GJOosb2JwQ78cImmB4K",
+      "customerName": "نعمان گاے-096",
+      "lastPurchaseDate": "2025-11-30T15:37:27.848Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "hUvcpmaUOughZk80FCMj",
+      "customerName": "ھمزہ 117",
+      "lastPurchaseDate": "2025-11-30T15:57:43.688Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 660,
+      "calculatedMilkRate": 220,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "70b3IquIUo6auYYMIQdp",
+      "customerName": "ھمزہ-033",
+      "lastPurchaseDate": "2025-11-30T15:21:57.365Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "T1cCYJqwHjIOGeAGWR7q",
+      "customerName": "وسیم1 -081",
+      "lastPurchaseDate": "2025-11-30T15:32:30.052Z",
+      "lastPurchaseMilk": 3,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 690,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "ROAggMJxtzfOoDA5layz",
+      "customerName": "وسیم2 -082",
+      "lastPurchaseDate": "2025-11-30T15:32:54.819Z",
+      "lastPurchaseMilk": 2,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 460,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    },
+    {
+      "customerId": "0M4jY1MJXFs0aFhqqcPG",
+      "customerName": "وسیم3 -083",
+      "lastPurchaseDate": "2025-11-30T15:33:16.530Z",
+      "lastPurchaseMilk": 1,
+      "lastPurchaseYogurt": 0,
+      "lastPurchaseTotal": 230,
+      "calculatedMilkRate": 230,
+      "calculatedYogurtRate": null
+    }
+  ]
+}

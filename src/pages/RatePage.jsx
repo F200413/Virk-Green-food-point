@@ -6,8 +6,7 @@ const RatePage = () => {
     // State variables
     const [rates, setRates] = useState({
         milk: 120,
-        yogurt: 140,
-        monthlyRates: {}
+        yogurt: 140
     });
     const [loading, setLoading] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -65,11 +64,9 @@ const RatePage = () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
-            // Ensure we preserve monthlyRates when updating global rates
             const updatedRates = {
                 milk: rates.milk,
-                yogurt: rates.yogurt,
-                monthlyRates: rates.monthlyRates || {} // Preserve existing monthly rates
+                yogurt: rates.yogurt
             };
             await setDoc(ratesDoc, updatedRates);
             setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
@@ -155,42 +152,6 @@ const RatePage = () => {
                     </div>
                 </div>
 
-                {/* Monthly Rates Summary */}
-                {rates.monthlyRates && Object.keys(rates.monthlyRates).length > 0 && (
-                    <div className="monthly-rates-summary">
-                        <h3>Monthly Rates Overview</h3>
-                        <p className="summary-description">
-                            You have {Object.keys(rates.monthlyRates).length} custom monthly rates set for specific customers.
-                            These rates will override the global rates above for specific customer-month combinations.
-                        </p>
-                        <div className="monthly-rates-note">
-                            <strong>Note:</strong> Monthly rates are managed through the customer management section.
-                            Global rates above serve as defaults when no specific monthly rate is set.
-                        </div>
-                    </div>
-                )}
-
-                {/* Rate Management Tips */}
-                <div className="rate-tips-card">
-                    <h3>Rate Management Tips</h3>
-                    <ul className="tips-list">
-                        <li>
-                            <strong>Global Rates:</strong> These rates apply to all customers by default
-                        </li>
-                        <li>
-                            <strong>Monthly Rates:</strong> Set specific rates for individual customers per month
-                        </li>
-                        <li>
-                            <strong>Rate Priority:</strong> Monthly rates override global rates when available
-                        </li>
-                        <li>
-                            <strong>Cascading:</strong> Monthly rates carry forward until new rates are set
-                        </li>
-                        <li>
-                            <strong>Backup:</strong> Always keep global rates updated as fallback values
-                        </li>
-                    </ul>
-                </div>
             </section>
 
             {/* Success Popup */}
@@ -368,55 +329,6 @@ const RatePage = () => {
                     font-size: 12px;
                 }
 
-                .monthly-rates-summary {
-                    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-                    padding: 25px;
-                    border-radius: 12px;
-                    margin-bottom: 30px;
-                    border: 1px solid #e1f5fe;
-                }
-
-                .summary-description {
-                    color: #37474f;
-                    margin-bottom: 15px;
-                    line-height: 1.6;
-                }
-
-                .monthly-rates-note {
-                    background-color: rgba(45, 106, 79, 0.1);
-                    padding: 15px;
-                    border-radius: 8px;
-                    border-left: 4px solid #2d6a4f;
-                    color: #1b4332;
-                }
-
-                .rate-tips-card {
-                    background: white;
-                    padding: 30px;
-                    border-radius: 12px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
-
-                .tips-list {
-                    list-style: none;
-                    padding: 0;
-                    margin-top: 15px;
-                }
-
-                .tips-list li {
-                    padding: 12px 0;
-                    border-bottom: 1px solid #f0f0f0;
-                    color: #555;
-                    line-height: 1.5;
-                }
-
-                .tips-list li:last-child {
-                    border-bottom: none;
-                }
-
-                .tips-list strong {
-                    color: #2d6a4f;
-                }
 
                 .popup-overlay {
                     position: fixed;
@@ -475,9 +387,7 @@ const RatePage = () => {
                     }
 
                     .rates-form-container,
-                    .rate-info-card,
-                    .monthly-rates-summary,
-                    .rate-tips-card {
+                    .rate-info-card {
                         padding: 20px;
                     }
 

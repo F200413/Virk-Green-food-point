@@ -7,7 +7,10 @@ import {
     query, 
     orderBy,
     getDoc,
-    setDoc
+    setDoc,
+    addDoc,
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import PeopleIcon from '@mui/icons-material/People';
 
@@ -227,6 +230,176 @@ const Dashboard = () => {
         clearDailyRevenue();
     };
 
+    const adjustMonthlyRates = async () => {
+        requestPasswordForDelete(async () => {
+            setLoading(true);
+            try {
+                // First, fetch all customers from Firestore to match by name
+                console.log('Fetching all customers from Firestore...');
+                const customersCollection = collection(firestore, 'customers');
+                const customersSnapshot = await getDocs(customersCollection);
+                const allCustomers = customersSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log(`Found ${allCustomers.length} customers in Firestore`);
+
+                // Create a map of customer names to IDs (normalize names by trimming)
+                const customerNameMap = {};
+                allCustomers.forEach(customer => {
+                    const normalizedName = (customer.name || '').trim();
+                    if (normalizedName) {
+                        // Store both exact match and case-insensitive match
+                        customerNameMap[normalizedName] = customer.id;
+                        customerNameMap[normalizedName.toLowerCase()] = customer.id;
+                    }
+                });
+
+                // Read the JSON file
+                const response = await fetch('/monthly_rates_from_last_purchase.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load monthly rates file');
+                }
+                const data = await response.json();
+                
+                if (!data.monthlyRates || data.monthlyRates.length === 0) {
+                    setSuccessMessage('مہینہ وار ریٹس کی فائل خالی ہے');
+                    setShowSuccessPopup(true);
+                    setLoading(false);
+                    return;
+                }
+
+                const monthlyRatesCollection = collection(firestore, 'monthlyRates');
+                let successCount = 0;
+                let errorCount = 0;
+                let notFoundCount = 0;
+                let noDateCount = 0;
+                const notFoundCustomers = [];
+
+                console.log('Starting to adjust monthly rates...');
+                console.log('Total customers in JSON:', data.monthlyRates.length);
+
+                // Process each customer's rate
+                for (const customerRate of data.monthlyRates) {
+                    try {
+                        // Skip if no rates calculated at all
+                        if (customerRate.calculatedMilkRate === null && customerRate.calculatedYogurtRate === null) {
+                            console.log(`Skipping customer ${customerRate.customerName} - no rates calculated`);
+                            continue;
+                        }
+
+                        // Get the month/year from the last purchase date (not current date)
+                        if (!customerRate.lastPurchaseDate) {
+                            console.log(`Skipping customer ${customerRate.customerName} - no last purchase date`);
+                            noDateCount++;
+                            continue;
+                        }
+
+                        const lastPurchaseDate = new Date(customerRate.lastPurchaseDate);
+                        const purchaseMonth = lastPurchaseDate.getMonth();
+                        const purchaseYear = lastPurchaseDate.getFullYear();
+
+                        // Normalize customer name from JSON
+                        const jsonCustomerName = (customerRate.customerName || '').trim();
+                        console.log(`Processing customer: "${jsonCustomerName}" (Last purchase: ${purchaseMonth + 1}/${purchaseYear})`);
+
+                        // Try to find customer by name (exact match first, then case-insensitive)
+                        let actualCustomerId = customerNameMap[jsonCustomerName] || customerNameMap[jsonCustomerName.toLowerCase()];
+
+                        // If not found by name, try using the customerId from JSON as fallback
+                        if (!actualCustomerId) {
+                            // Check if the customerId from JSON exists in Firestore
+                            const customerById = allCustomers.find(c => c.id === customerRate.customerId);
+                            if (customerById) {
+                                actualCustomerId = customerRate.customerId;
+                                console.log(`  - Found by customerId from JSON: ${actualCustomerId}`);
+                            } else {
+                                console.warn(`  - ⚠️ Customer not found: "${jsonCustomerName}" (ID: ${customerRate.customerId})`);
+                                notFoundCount++;
+                                notFoundCustomers.push(jsonCustomerName);
+                                continue;
+                            }
+                        } else {
+                            console.log(`  - Found customer by name, using ID: ${actualCustomerId}`);
+                        }
+
+                        console.log(`  - Milk Rate: ${customerRate.calculatedMilkRate}, Yogurt Rate: ${customerRate.calculatedYogurtRate}`);
+
+                        // Set rates for the month of the last purchase (not current month)
+                        // Check if monthly rate already exists for this customer, month, and year
+                        const existingQuery = query(
+                            monthlyRatesCollection,
+                            where('customerId', '==', actualCustomerId),
+                            where('month', '==', purchaseMonth),
+                            where('year', '==', purchaseYear)
+                        );
+                        const existingSnapshot = await getDocs(existingQuery);
+
+                        // Only set rates that are not null
+                        const rateData = {
+                            customerId: actualCustomerId,
+                            month: purchaseMonth,
+                            year: purchaseYear,
+                            updatedAt: new Date()
+                        };
+
+                        if (customerRate.calculatedMilkRate !== null && customerRate.calculatedMilkRate !== undefined) {
+                            rateData.milkRate = customerRate.calculatedMilkRate;
+                        }
+                        if (customerRate.calculatedYogurtRate !== null && customerRate.calculatedYogurtRate !== undefined) {
+                            rateData.yogurtRate = customerRate.calculatedYogurtRate;
+                        }
+
+                        console.log(`  - Rate data to save for ${purchaseMonth + 1}/${purchaseYear}:`, rateData);
+
+                        if (!existingSnapshot.empty) {
+                            // Update existing document
+                            const docId = existingSnapshot.docs[0].id;
+                            console.log(`  - Updating existing rate document: ${docId}`);
+                            await updateDoc(doc(firestore, 'monthlyRates', docId), rateData);
+                            console.log(`  - ✓ Updated successfully`);
+                        } else {
+                            // Create new document
+                            rateData.createdAt = new Date();
+                            console.log(`  - Creating new rate document`);
+                            await addDoc(monthlyRatesCollection, rateData);
+                            console.log(`  - ✓ Created successfully`);
+                        }
+                        successCount++;
+                    } catch (error) {
+                        console.error(`Error updating rates for customer ${customerRate.customerName}:`, error);
+                        errorCount++;
+                    }
+                }
+
+                console.log(`Completed: ${successCount} successful, ${errorCount} errors, ${notFoundCount} not found`);
+                if (notFoundCustomers.length > 0) {
+                    console.warn('Customers not found in Firestore:', notFoundCustomers.slice(0, 10));
+                }
+
+                let message = `مہینہ وار ریٹس کامیابی سے اپڈیٹ ہوگئے۔ ${successCount} کامیاب`;
+                if (errorCount > 0) {
+                    message += `، ${errorCount} خرابی`;
+                }
+                if (notFoundCount > 0) {
+                    message += `، ${notFoundCount} گاہک نہیں ملے`;
+                }
+                setSuccessMessage(message);
+                setShowSuccessPopup(true);
+            } catch (error) {
+                console.error("Error adjusting monthly rates: ", error);
+                setSuccessMessage("مہینہ وار ریٹس اپڈیٹ کرنے میں خرابی: " + error.message);
+                setShowSuccessPopup(true);
+            } finally {
+                setLoading(false);
+            }
+        });
+    };
+
+    const handleAdjustRates = () => {
+        adjustMonthlyRates();
+    };
+
     // Get today's bills count
     const getTodayBillsCount = () => {
         const today = new Date();
@@ -243,7 +416,37 @@ const Dashboard = () => {
     return (
         <div className="main-content">
             <section id="dashboard" className="active">
-                <h2>ڈیش بورڈ</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h2>ڈیش بورڈ</h2>
+                    <button
+                        onClick={handleAdjustRates}
+                        className="adjust-rate-btn"
+                        disabled={loading}
+                        style={{
+                            padding: '12px 24px',
+                            backgroundColor: '#2d6a4f',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'background-color 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!loading) e.target.style.backgroundColor = '#1b4332';
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!loading) e.target.style.backgroundColor = '#2d6a4f';
+                        }}
+                    >
+                        Adjust Rate
+                        {loading && <LoadingSpinner />}
+                    </button>
+                </div>
                 <div className="dashboard-container">
                     <div className="dashboard-grid">
                         {/* Total Revenue Card */}
