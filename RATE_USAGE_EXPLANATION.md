@@ -143,3 +143,4 @@ JSON file   500/200 rates    Firestore update    Next purchase uses these
 2. **Monthly Rates**: `settings/rates` → `monthlyRates[customerId_year_month]`
 3. **Purchase Rates**: `purchases/[purchaseId]` → `milkRate`, `yogurtRate` (stored when purchase created)
 
+

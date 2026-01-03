@@ -86,3 +86,4 @@
 
 **Safe to use!** It only affects current month rates, everything else stays intact.
 
+

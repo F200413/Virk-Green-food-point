@@ -2145,13 +2145,27 @@ const Home = () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
+            
+            // CRITICAL FIX: Always fetch latest rates from Firestore first to preserve monthlyRates
+            const ratesSnapshot = await getDoc(ratesDoc);
+            let currentMonthlyRates = {};
+            
+            if (ratesSnapshot.exists()) {
+                const currentData = ratesSnapshot.data();
+                currentMonthlyRates = currentData.monthlyRates || {};
+            }
+            
             // Ensure we preserve monthlyRates when updating global rates
             const updatedRates = {
                 milk: rates.milk,
                 yogurt: rates.yogurt,
-                monthlyRates: rates.monthlyRates || {} // Preserve existing monthly rates
+                monthlyRates: currentMonthlyRates // Use latest monthlyRates from Firestore, not state
             };
             await setDoc(ratesDoc, updatedRates);
+            
+            // Update local state with the saved data
+            setRates(updatedRates);
+            
             closeModal('ratesModal');
             setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);

@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { importMonthlyRatesFromFile } from '../utils/importMonthlyRates';
 import { importAbdullahRatesFromFile } from '../utils/importAbdullahRates';
 import { setCurrentMonthRatesFromLastPurchase } from '../utils/setNextMonthRates';
+import { exportMonthlyDataToJSON } from '../utils/exportMonthlyData';
 
 const RatePage = () => {
     // State variables
@@ -16,6 +17,7 @@ const RatePage = () => {
     const [importing, setImporting] = useState(false);
     const [importingAbdullah, setImportingAbdullah] = useState(false);
     const [settingNextMonthRates, setSettingNextMonthRates] = useState(false);
+    const [exportingMonthlyData, setExportingMonthlyData] = useState(false);
     const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
@@ -72,13 +74,27 @@ const RatePage = () => {
         setLoading(true);
         try {
             const ratesDoc = doc(firestore, 'settings', 'rates');
+            
+            // CRITICAL FIX: Always fetch latest rates from Firestore first to preserve monthlyRates
+            const ratesSnapshot = await getDoc(ratesDoc);
+            let currentMonthlyRates = {};
+            
+            if (ratesSnapshot.exists()) {
+                const currentData = ratesSnapshot.data();
+                currentMonthlyRates = currentData.monthlyRates || {};
+            }
+            
             // Ensure we preserve monthlyRates when updating global rates
             const updatedRates = {
                 milk: rates.milk,
                 yogurt: rates.yogurt,
-                monthlyRates: rates.monthlyRates || {} // Preserve existing monthly rates
+                monthlyRates: currentMonthlyRates // Use latest monthlyRates from Firestore, not state
             };
             await setDoc(ratesDoc, updatedRates);
+            
+            // Update local state with the saved data
+            setRates(updatedRates);
+            
             setSuccessMessage('ریٹس کامیابی سے اپڈیٹ ہوگئے');
             setShowSuccessPopup(true);
         } catch (error) {
@@ -192,6 +208,25 @@ const RatePage = () => {
         } finally {
             setSettingNextMonthRates(false);
             setImportProgress({ current: 0, total: 0 });
+        }
+    };
+
+    const handleExportMonthlyData = async () => {
+        setExportingMonthlyData(true);
+        try {
+            const result = await exportMonthlyDataToJSON();
+            if (result.success) {
+                setSuccessMessage(`مہینہ وار ڈیٹا کامیابی سے ڈاؤن لوڈ ہو گیا: ${result.filename}`);
+            } else {
+                setSuccessMessage('مہینہ وار ڈیٹا ڈاؤن لوڈ کرنے میں خرابی');
+            }
+            setShowSuccessPopup(true);
+        } catch (error) {
+            console.error("Error exporting monthly data: ", error);
+            setSuccessMessage('مہینہ وار ڈیٹا ڈاؤن لوڈ کرنے میں خرابی: ' + error.message);
+            setShowSuccessPopup(true);
+        } finally {
+            setExportingMonthlyData(false);
         }
     };
 
@@ -433,6 +468,86 @@ const RatePage = () => {
                                 <p style={{ margin: 0, color: '#856404', fontSize: '13px' }}>
                                     <strong>نوٹ:</strong> یہ صرف عبداللہ گاہک کے لیے ریٹس درآمد کرے گا۔ 
                                     خریداری کے ڈیٹا سے اصل ریٹس کا حساب لگایا جائے گا (مثال: 500/200)۔
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Export Monthly User Data Section */}
+                    <div style={{ 
+                        marginTop: '30px', 
+                        padding: '25px', 
+                        borderTop: '2px solid #e9ecef',
+                        backgroundColor: '#e7f3ff',
+                        borderRadius: '8px',
+                        border: '2px solid #3498db'
+                    }}>
+                        <h3 style={{ marginBottom: '10px', color: '#1a5490', fontSize: '20px' }}>
+                            📤 مہینہ وار گاہک ڈیٹا ڈاؤن لوڈ کریں
+                        </h3>
+                        <p style={{ marginBottom: '20px', color: '#1a5490', fontSize: '14px', lineHeight: '1.6' }}>
+                            تمام گاہکوں کا مہینہ وار ڈیٹا (خریداریاں، ریٹس، کل مقدار، کل رقم) JSON فائل میں ڈاؤن لوڈ کریں۔
+                            یہ فائل بعد میں ریٹس درآمد کرنے کے لیے استعمال کی جا سکتی ہے۔
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                            <button
+                                onClick={handleExportMonthlyData}
+                                disabled={exportingMonthlyData}
+                                style={{
+                                    padding: '14px 28px',
+                                    backgroundColor: exportingMonthlyData ? '#6c757d' : '#3498db',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: exportingMonthlyData ? 'not-allowed' : 'pointer',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: exportingMonthlyData ? 'none' : '0 2px 5px rgba(0,0,0,0.1)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!exportingMonthlyData) {
+                                        e.target.style.backgroundColor = '#2980b9';
+                                        e.target.style.transform = 'translateY(-1px)';
+                                        e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!exportingMonthlyData) {
+                                        e.target.style.backgroundColor = '#3498db';
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                                    }
+                                }}
+                            >
+                                {exportingMonthlyData ? (
+                                    <>
+                                        <LoadingSpinner />
+                                        <span>ڈاؤن لوڈ ہو رہا ہے...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>📤</span>
+                                        <span>مہینہ وار ڈیٹا ڈاؤن لوڈ کریں</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {!exportingMonthlyData && (
+                            <div style={{ 
+                                marginTop: '15px', 
+                                padding: '12px', 
+                                backgroundColor: '#d1ecf1', 
+                                borderRadius: '6px',
+                                borderLeft: '4px solid #3498db'
+                            }}>
+                                <p style={{ margin: 0, color: '#0c5460', fontSize: '13px' }}>
+                                    <strong>نوٹ:</strong> یہ فائل تمام گاہکوں کے مہینہ وار ڈیٹا پر مشتمل ہوگی، 
+                                    جس میں خریداریاں، ریٹس، کل مقدار اور کل رقم شامل ہوگی۔ 
+                                    فائل کا نام: <code>monthly_user_data_YYYY-MM-DD.json</code>
                                 </p>
                             </div>
                         )}
