@@ -244,7 +244,7 @@ const RozanaGahak = () => {
                 const kheerValue = entry.kheerTotal || entry.kheerAmount || 0;
                 entriesHTML += `
                     <tr>
-                        <td style="text-align: right;">کھیر</td>
+                        <td style="text-align: right;">کھیر/کھویا</td>
                         <td style="text-align: center;">1</td>
                         <td style="text-align: center;">-</td>
                         <td style="text-align: center;">${kheerValue.toFixed(2)}</td>
@@ -621,7 +621,7 @@ const RozanaGahak = () => {
                                             )}
                                             {(entry.kheerAmount > 0 || entry.kheerTotal > 0) && (
                                                 <tr>
-                                                    <td>کھیر</td>
+                                                    <td>کھیر/کھویا</td>
                                                     <td>-</td>
                                                     <td>Rs. {(entry.kheerTotal || entry.kheerAmount || 0).toFixed(2)}</td>
                                                     <td>
