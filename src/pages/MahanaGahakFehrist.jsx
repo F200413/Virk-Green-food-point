@@ -517,7 +517,7 @@ const Home = () => {
                 deleteAction(deleteParams);
             }
         } else {
-            setPasswordError('غلط پاس ورڈ! براہ کرم دوبارہ کوشش کریں۔');
+            setPasswordError('غلط پاس ورڈ! براہ کرم دوبارہ کوشش کریں');
         }
     };
 
