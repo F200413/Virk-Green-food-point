@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { firestore } from '../firebase';
 import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    deleteDoc, 
-    doc, 
+    collection,
+    addDoc,
+    getDocs,
+    deleteDoc,
+    doc,
     updateDoc,
     Timestamp,
-    getDoc,
-    setDoc
+    getDoc
 } from 'firebase/firestore';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
