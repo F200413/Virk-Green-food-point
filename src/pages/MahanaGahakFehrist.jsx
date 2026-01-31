@@ -873,19 +873,48 @@ const Home = () => {
         const yogurtTotal = Math.round(monthlyTotals.yogurt * yogurtRate);
         const thisMonthTotal = milkTotal + yogurtTotal;
 
-        // Calculate previous balance - all months before the selected month
+        // Calculate previous balance - all months before the selected month across all years
         let previousBalance = 0;
 
-        // Loop through all previous months up to the selected month
-        for (let m = 0; m < selectedMonth; m++) {
-            // Get previous month's purchases
-            const prevMonthPurchases = filterPurchasesByMonth(customer.id, m, selectedYear);
-            if (prevMonthPurchases.length === 0) continue;
+        // Get the start date of the selected month
+        const startOfSelectedMonth = new Date(selectedYear, selectedMonth, 1);
+
+        // Get all purchases before the selected month
+        const allPreviousPurchases = purchases.filter(purchase => {
+            if (purchase.customerId !== customer.id || !purchase.date) return false;
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
+                new Date(purchase.date);
+            return purchaseDate < startOfSelectedMonth;
+        });
+
+        // Group purchases by month and year
+        const purchasesByMonthYear = {};
+        allPreviousPurchases.forEach(purchase => {
+            const purchaseDate = purchase.date instanceof Date ?
+                purchase.date :
+                new Date(purchase.date);
+            const month = purchaseDate.getMonth();
+            const year = purchaseDate.getFullYear();
+            const key = `${year}_${month}`;
+            
+            if (!purchasesByMonthYear[key]) {
+                purchasesByMonthYear[key] = [];
+            }
+            purchasesByMonthYear[key].push(purchase);
+        });
+
+        // Calculate balance for each month/year combination
+        Object.keys(purchasesByMonthYear).forEach(key => {
+            const [year, month] = key.split('_').map(Number);
+            const prevMonthPurchases = purchasesByMonthYear[key];
+            
+            if (prevMonthPurchases.length === 0) return;
 
             // Calculate previous month's totals
             const prevMonthTotals = calculateTotals(prevMonthPurchases);
-            const prevMonthRates = getMonthlyRates(customer.id, m, selectedYear);
-            if (!prevMonthRates) continue;
+            const prevMonthRates = getMonthlyRates(customer.id, month, year);
+            if (!prevMonthRates) return;
             const milkRate = prevMonthRates.milkRate || 0;
             const yogurtRate = prevMonthRates.yogurtRate || 0;
             const prevMilkTotal = Math.round(prevMonthTotals.milk * milkRate);
@@ -894,7 +923,7 @@ const Home = () => {
 
             // Add to previous balance
             previousBalance += prevMonthTotal;
-        }
+        });
 
         // Get all advance payments up to the end of selected month
         const endOfSelectedMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
