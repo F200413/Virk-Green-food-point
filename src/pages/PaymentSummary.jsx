@@ -45,6 +45,7 @@ const PaymentSummary = () => {
         if (customers.length > 0 && purchases.length > 0) {
             calculatePaymentSummary();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [customers, purchases, advancePayments]);
 
     const fetchCustomers = async () => {

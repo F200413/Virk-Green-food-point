@@ -10,7 +10,7 @@ const RozanaGahak = () => {
         milk: 120,
         yogurt: 140
     });
-    const [bills, setBills] = useState([]);
+    const [, setBills] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
@@ -203,8 +203,6 @@ const RozanaGahak = () => {
         const currentDate = new Date();
         const formattedDate = currentDate.toLocaleDateString();
         const formattedTime = currentDate.toLocaleTimeString();
-
-        const billNumber = bill.id || '0';
 
         const entries = bill.entries || [
             {

@@ -13,7 +13,7 @@ const RozanaGahakList = () => {
     const [passwordError, setPasswordError] = useState('');
     const [deleteAction, setDeleteAction] = useState(null);
     const [deleteParams, setDeleteParams] = useState(null);
-    const [rates, setRates] = useState({
+    const [, setRates] = useState({
         milk: 120,
         yogurt: 140
     });
@@ -150,10 +150,7 @@ const RozanaGahakList = () => {
         const billPrint = document.getElementById('billPrint');
 
         const currentDate = new Date();
-        const formattedDate = currentDate.toLocaleDateString();
         const formattedTime = currentDate.toLocaleTimeString();
-
-        const billNumber = bill.id || '0';
 
         const entries = bill.entries || [
             {
