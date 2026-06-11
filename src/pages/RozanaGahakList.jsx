@@ -189,7 +189,7 @@ const RozanaGahakList = () => {
         billPrint.innerHTML = `
             <div style="border: 2px solid black; padding: 10px; width: 210px; margin: 0 auto; font-family: Arial, sans-serif; direction: rtl;">
                 <div style="text-align: center; font-weight: bold; font-size: 25px; margin-bottom: 5px;">
-                    ورک گرین فوڈ پوائنٹ
+                    مِلک شاپ
                     </div>
                 <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0; margin-bottom: 5px;">
                     <div style="display: flex; justify-content: space-between;">
@@ -203,10 +203,6 @@ const RozanaGahakList = () => {
                     <div style="display: flex; justify-content: space-between;">
                         <span>ٹوکن نمبر :</span>
                         <span>${bill.tokenNumber || '0'}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>فون ورک :</span>
-                        <span>03457411666</span>
                     </div>
                     </div>
 
