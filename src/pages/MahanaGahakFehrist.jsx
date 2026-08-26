@@ -3,6 +3,8 @@ import { firestore } from '../firebase';
 import { collection, addDoc, getDocs, doc, query, orderBy, getDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import SearchIcon from '@mui/icons-material/Search';
 import PrintIcon from '@mui/icons-material/Print';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Calendar from 'react-calendar';
@@ -683,6 +685,95 @@ const Home = () => {
         }
     };
 
+    // ---- Export helpers (PDF / Excel) ----
+
+    // Bill ka HTML ek chhupe hue iframe mein render karke uski tasveer banate hain,
+    // phir usay A4 PDF mein daal dete hain. Iframe isliye ke bill ki CSS
+    // main page ki styling ko kharab na kare.
+    const exportBillAsPdf = async (billHtml, fileName) => {
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('aria-hidden', 'true');
+        iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:1400px;border:0;';
+        document.body.appendChild(iframe);
+
+        try {
+            const frameDoc = iframe.contentDocument;
+            frameDoc.open();
+            frameDoc.write(billHtml);
+            frameDoc.close();
+
+            // Logo images (whatsapp / allied) load hone ka intezar
+            await Promise.all(Array.from(frameDoc.images).map(img => (
+                img.complete ? Promise.resolve() : new Promise(done => {
+                    img.onload = done;
+                    img.onerror = done;
+                })
+            )));
+            await new Promise(done => setTimeout(done, 300));
+
+            const { jsPDF } = await import('jspdf');
+            const html2canvas = (await import('html2canvas')).default;
+
+            // Sirf bill-container capture karte hain taake body ki 215px padding PDF mein na aaye
+            const target = frameDoc.querySelector('.bill-container') || frameDoc.body;
+            const canvas = await html2canvas(target, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                logging: false
+            });
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const margin = 8;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pageWidth - margin * 2;
+            let imgHeight = (canvas.height * imgWidth) / canvas.width;
+            if (imgHeight > pageHeight - margin * 2) {
+                imgHeight = pageHeight - margin * 2;
+            }
+
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, margin, imgWidth, imgHeight);
+            pdf.save(fileName);
+        } catch (error) {
+            console.error('PDF banane mein masla:', error);
+            alert('PDF nahi ban saka. Dobara koshish karein.');
+        } finally {
+            document.body.removeChild(iframe);
+        }
+    };
+
+    // Excel ke liye HTML table bana kar .xls ke tor par download karte hain.
+    // Shuru mein BOM (\ufeff) zaroori hai, warna Excel mein Urdu text toot jata hai.
+    const exportRowsAsExcel = (title, rows, fileName) => {
+        const esc = (value) => String(value === undefined || value === null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const bodyRows = rows.map(row => (
+            row.length === 0
+                ? '<tr><td colspan="4"></td></tr>'
+                : `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join('')}</tr>`
+        )).join('');
+
+        const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">` +
+            `<head><meta charset="utf-8" /></head>` +
+            `<body><table border="1" dir="rtl">` +
+            `<caption style="font-weight:bold">${esc(title)}</caption>${bodyRows}` +
+            `</table></body></html>`;
+
+        const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     // Print functions
     const printMonthlyTotals = () => {
         if (!selectedCustomerInfo) return;
@@ -837,7 +928,9 @@ const Home = () => {
         }, 500);
     };
 
-    const printA4MonthlyBill = () => {
+    // mode: 'print' | 'pdf' | 'excel' — hisaab kitaab teeno ke liye ek hi hai,
+    // sirf aakhir mein output ka tareeqa alag hota hai.
+    const printA4MonthlyBill = async (mode = 'print') => {
         // Get selected customer info
         const customer = selectedCustomerInfo;
         if (!customer) return;
@@ -975,13 +1068,6 @@ const Home = () => {
         // Calculate remaining balance after payments
         const remainingBalance = grandTotal - totalAdvancePayments;
         const isCredit = remainingBalance <= 0;
-
-        // Create a new window for the print
-        const printWindow = window.open('', '', 'height=600,width=800');
-        if (!printWindow) {
-            alert('Print window bloack ho gayi hai. Browser mein is site ke liye pop-ups allow karein.');
-            return;
-        }
 
         // Generate the print content for A4 size with running balance format
         const printContent = `
@@ -1276,6 +1362,46 @@ const Home = () => {
             </html>
         `;
 
+        // File ka naam - customer name mein slash waghera file system ko kharab karta hai
+        const safeName = String(customer.name || 'customer').replace(/[\\/:*?"<>|]/g, '-').trim();
+        const baseFileName = `Bill-${safeName}-${selectedMonth + 1}-${selectedYear}`;
+
+        if (mode === 'excel') {
+            const rows = [
+                ['تاریخ', formattedDate],
+                ['گاہک کا نام', customer.name],
+                ['فون', customer.phone || 'N/A'],
+                [],
+                ['تفصیل', 'مقدار', 'ریٹ', 'رقم']
+            ];
+            if (monthlyTotals.milk > 0) {
+                rows.push(['دودھ', Math.round(monthlyTotals.milk), milkRate, milkTotal]);
+            }
+            if (monthlyTotals.yogurt > 0) {
+                rows.push(['دہی', Math.round(monthlyTotals.yogurt), yogurtRate, yogurtTotal]);
+            }
+            rows.push(['اس ماہ کل فروخت', '', '', thisMonthTotal]);
+            rows.push([]);
+            rows.push(['پچھلا بقایا', Math.abs(remainingBalance - thisMonthTotal)]);
+            rows.push(['پچھلے ماہ کی ادائیگی', currentMonthPayment]);
+            rows.push([isCredit ? 'جمع شدہ رقم' : 'باقی رقم', Math.abs(remainingBalance)]);
+
+            exportRowsAsExcel(`${customer.name} - ${selectedMonth + 1}/${selectedYear}`, rows, `${baseFileName}.xls`);
+            return;
+        }
+
+        if (mode === 'pdf') {
+            await exportBillAsPdf(printContent, `${baseFileName}.pdf`);
+            return;
+        }
+
+        // Create a new window for the print
+        const printWindow = window.open('', '', 'height=600,width=800');
+        if (!printWindow) {
+            alert('Print window bloack ho gayi hai. Browser mein is site ke liye pop-ups allow karein.');
+            return;
+        }
+
         // Write content to the print window
         printWindow.document.write(printContent);
         printWindow.document.close();
@@ -1496,6 +1622,7 @@ const Home = () => {
                                             })()}
                                             <div style={{
                                                 display: 'flex',
+                                                flexWrap: 'wrap',
                                                 gap: '10px',
                                                 marginTop: '15px'
                                             }}>
@@ -1522,7 +1649,7 @@ const Home = () => {
                                                 </button>
 
                                                 <button
-                                                    onClick={printA4MonthlyBill}
+                                                    onClick={() => printA4MonthlyBill('print')}
                                                     className="print-btn"
                                                     disabled={loading}
                                                     style={{
@@ -1541,6 +1668,52 @@ const Home = () => {
                                                 >
                                                     <PrintIcon fontSize="small" style={{ marginRight: '5px' }} />
                                                     Print A4 Bill
+                                                </button>
+
+                                                <button
+                                                    onClick={() => printA4MonthlyBill('pdf')}
+                                                    className="print-btn"
+                                                    disabled={loading}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '8px 15px',
+                                                        backgroundColor: '#e74c3c',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '5px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        flex: 1,
+                                                        minWidth: '150px'
+                                                    }}
+                                                >
+                                                    <PictureAsPdfIcon fontSize="small" style={{ marginRight: '5px' }} />
+                                                    Download PDF
+                                                </button>
+
+                                                <button
+                                                    onClick={() => printA4MonthlyBill('excel')}
+                                                    className="print-btn"
+                                                    disabled={loading}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '8px 15px',
+                                                        backgroundColor: '#16a085',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '5px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        flex: 1,
+                                                        minWidth: '150px'
+                                                    }}
+                                                >
+                                                    <TableChartIcon fontSize="small" style={{ marginRight: '5px' }} />
+                                                    Download Excel
                                                 </button>
                                             </div>
                                         </div>
