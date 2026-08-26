@@ -693,6 +693,10 @@ const Home = () => {
         const formattedTime = currentDate.toLocaleTimeString();
 
         const printWindow = window.open('', '', 'height=600,width=800');
+        if (!printWindow) {
+            alert('Print window bloack ho gayi hai. Browser mein is site ke liye pop-ups allow karein.');
+            return;
+        }
         const printContent = `
             <html>
             <head>
@@ -822,9 +826,14 @@ const Home = () => {
 
         printWindow.document.write(printContent);
         printWindow.document.close();
+        // Window ko print() ke foran baad close karna print job ko cancel kar deta hai.
+        // Close sirf tab karo jab print dialog band ho jaye (afterprint).
+        printWindow.onafterprint = () => printWindow.close();
         setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
+            if (!printWindow.closed) {
+                printWindow.focus();
+                printWindow.print();
+            }
         }, 500);
     };
 
@@ -969,6 +978,10 @@ const Home = () => {
 
         // Create a new window for the print
         const printWindow = window.open('', '', 'height=600,width=800');
+        if (!printWindow) {
+            alert('Print window bloack ho gayi hai. Browser mein is site ke liye pop-ups allow karein.');
+            return;
+        }
 
         // Generate the print content for A4 size with running balance format
         const printContent = `
@@ -990,7 +1003,6 @@ const Home = () => {
                         font-family: Arial, sans-serif;
                         padding: 215px;
                         padding-top: 0px;
-                        margin-bottom: 800;
                         direction: rtl;
                         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
                     }
@@ -1268,10 +1280,14 @@ const Home = () => {
         printWindow.document.write(printContent);
         printWindow.document.close();
 
-        // Print after a short delay to ensure content is loaded
+        // Window ko print() ke foran baad close karna print job ko cancel kar deta hai.
+        // Close sirf tab karo jab print dialog band ho jaye (afterprint).
+        printWindow.onafterprint = () => printWindow.close();
         setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
+            if (!printWindow.closed) {
+                printWindow.focus();
+                printWindow.print();
+            }
         }, 500);
     };
 
